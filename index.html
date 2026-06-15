@@ -1,270 +1,2292 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Idea Capture Station | Tu Guardar Ideas Diario</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskFlow Pro - Productivity Suite</title>
+<style>
+  :root {
+    --bg-primary: #0f1117;
+    --bg-secondary: #1a1d27;
+    --bg-tertiary: #242836;
+    --bg-hover: #2d3245;
+    --accent: #6c5ce7;
+    --accent-light: #a29bfe;
+    --accent-dark: #5a4bd1;
+    --success: #00b894;
+    --warning: #fdcb6e;
+    --danger: #e17055;
+    --info: #74b9ff;
+    --text-primary: #f0f0f0;
+    --text-secondary: #a0a3b1;
+    --text-muted: #6c7086;
+    --border: #2d3245;
+    --shadow: 0 8px 32px rgba(0,0,0,0.3);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --sidebar-width: 260px;
+    --header-height: 64px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 
-    <!-- CSS Estilos (Todo en el mismo archivo) -->
-    <style>
-        :root {
-            --main-color: #3498db; /* Azul suave */
-            --background-light: #f4f7f9;
-            --card-bg: #ffffff;
-            --text-dark: #2c3e50;
-            --shadow-strong: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: var(--background-light);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            min-height: 100vh;
-        }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+  }
 
-        .container {
-            max-width: 800px;
-            width: 100%;
-            background-color: var(--card-bg);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: var(--shadow-strong);
-        }
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-        header {
-            text-align: center;
-            margin-bottom: 40px;
-            border-bottom: 2px solid var(--main-color);
-            padding-bottom: 15px;
-        }
+  /* LAYOUT */
+  .app-container { display: flex; height: 100vh; }
 
-        h1 {
-            color: var(--text-dark);
-            font-weight: 300;
-        }
+  /* SIDEBAR */
+  .sidebar {
+    width: var(--sidebar-width);
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    transition: var(--transition);
+    z-index: 100;
+    flex-shrink: 0;
+  }
 
-        /* Área de Input */
-        #input-area h2 {
-            color: #7f8c8d;
-            margin-top: 0;
-            font-weight: normal;
-            border-bottom: 1px solid var(--background-light);
-            padding-bottom: 10px;
-        }
+  .sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
 
-        textarea {
-            width: calc(100% - 20px);
-            min-height: 150px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 16px;
-            resize: vertical; /* Permite redimensionar solo verticalmente */
-        }
+  .sidebar-logo {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800; color: white;
+  }
 
-        button {
-            background-color: var(--main-color);
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 10px;
-            transition: background-color 0.3s ease, transform 0.2s;
-        }
+  .sidebar-title h1 { font-size: 16px; font-weight: 700; }
+  .sidebar-title span { font-size: 11px; color: var(--text-muted); }
 
-        button:hover {
-            background-color: #2980b9; /* Un azul más oscuro al pasar el mouse */
-            transform: translateY(-1px);
-        }
+  .sidebar-nav { flex: 1; padding: 12px; overflow-y: auto; }
 
-        /* Lista de Ideas Guardadas */
-        #ideas-list {
-            margin-top: 40px;
-        }
+  .nav-section { margin-bottom: 8px; }
+  .nav-section-title {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); padding: 12px 12px 6px; font-weight: 600;
+  }
 
-        #ideas-list h2 {
-            color: var(--text-dark);
-            border-bottom: 2px solid #ecf0f1;
-            padding-bottom: 10px;
-        }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border-radius: var(--radius-sm);
+    cursor: pointer; transition: var(--transition);
+    color: var(--text-secondary); font-size: 14px;
+    position: relative; margin-bottom: 2px;
+  }
 
-        .idea-card {
-            background-color: var(--background-light);
-            border-left: 5px solid var(--main-color);
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s;
-        }
+  .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .nav-item.active { background: var(--accent); color: white; }
+  .nav-item .icon { font-size: 18px; width: 24px; text-align: center; }
+  .nav-item .badge {
+    margin-left: auto; background: var(--danger);
+    color: white; font-size: 11px; padding: 2px 7px;
+    border-radius: 10px; font-weight: 600;
+  }
+  .nav-item.active .badge { background: rgba(255,255,255,0.3); }
 
-        .idea-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-        }
+  .sidebar-footer {
+    padding: 16px; border-top: 1px solid var(--border);
+  }
 
-        .idea-content {
-            white-space: pre-wrap; /* Mantiene saltos de línea y formato */
-            font-size: 17px;
-            color: #34495e;
-            margin-bottom: 10px;
-        }
+  .storage-info {
+    font-size: 11px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 6px;
+  }
 
-        .idea-metadata {
-            display: block;
-            text-align: right;
-            font-size: 0.8em;
-            color: #95a5a6;
-        }
+  .storage-bar {
+    width: 100%; height: 4px; background: var(--bg-tertiary);
+    border-radius: 2px; margin-top: 6px; overflow: hidden;
+  }
 
-        /* Botones de utilidad */
-        .utility-buttons {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            justify-content: space-between;
-        }
-        
-        #clear-all {
-            background-color: #e74c3c; /* Rojo para borrar todo */
-            padding: 8px 15px;
-            font-size: 14px;
-            transition: background-color 0.2s;
-        }
+  .storage-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--success));
+    border-radius: 2px; transition: width 0.5s ease;
+  }
 
-        #clear-all:hover {
-            background-color: #c0392b;
-        }
-    </style>
+  /* MAIN */
+  .main-content {
+    flex: 1; display: flex; flex-direction: column;
+    overflow: hidden; min-width: 0;
+  }
+
+  /* HEADER */
+  .header {
+    height: var(--header-height);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 24px; gap: 16px; flex-shrink: 0;
+  }
+
+  .menu-toggle {
+    display: none; background: none; border: none;
+    color: var(--text-primary); font-size: 24px; cursor: pointer;
+  }
+
+  .header-search {
+    flex: 1; max-width: 480px; position: relative;
+  }
+
+  .header-search input {
+    width: 100%; padding: 10px 16px 10px 40px;
+    background: var(--bg-tertiary); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text-primary); font-size: 14px;
+    transition: var(--transition); outline: none;
+  }
+
+  .header-search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,92,231,0.15); }
+  .header-search input::placeholder { color: var(--text-muted); }
+  .header-search .search-icon {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); font-size: 16px;
+  }
+
+  .header-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+  .btn {
+    padding: 9px 18px; border-radius: var(--radius-sm);
+    border: none; cursor: pointer; font-size: 14px; font-weight: 600;
+    transition: var(--transition); display: inline-flex;
+    align-items: center; gap: 8px; white-space: nowrap;
+  }
+
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(108,92,231,0.4); }
+  .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--bg-hover); border-color: var(--accent); }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-danger:hover { opacity: 0.85; }
+  .btn-success { background: var(--success); color: white; }
+  .btn-success:hover { opacity: 0.85; }
+  .btn-ghost { background: transparent; color: var(--text-secondary); padding: 8px; }
+  .btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-lg { padding: 12px 28px; font-size: 16px; }
+
+  /* CONTENT */
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* PAGE HEADER */
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
+  }
+
+  .page-title h2 { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+  .page-title p { color: var(--text-secondary); font-size: 14px; }
+
+  /* CARDS */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px; margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    transition: var(--transition); position: relative; overflow: hidden;
+  }
+
+  .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+  .stat-card .stat-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; margin-bottom: 14px;
+  }
+
+  .stat-card .stat-value { font-size: 32px; font-weight: 800; margin-bottom: 4px; }
+  .stat-card .stat-label { color: var(--text-secondary); font-size: 13px; }
+  .stat-card .stat-change {
+    font-size: 12px; margin-top: 8px; display: flex; align-items: center; gap: 4px;
+  }
+
+  /* PROJECT CARDS */
+  .projects-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px; margin-bottom: 28px;
+  }
+
+  .project-card {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    transition: var(--transition); cursor: pointer; position: relative;
+  }
+
+  .project-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--accent); }
+
+  .project-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .project-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .project-card .project-desc { color: var(--text-secondary); font-size: 13px; line-height: 1.5; margin-bottom: 16px; }
+
+  .project-color-bar {
+    height: 4px; border-radius: 2px; margin-bottom: 16px;
+  }
+
+  .project-progress { margin-bottom: 14px; }
+  .project-progress .progress-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+  .progress-bar { height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+  .project-footer { display: flex; justify-content: space-between; align-items: center; }
+  .project-members { display: flex; }
+  .member-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid var(--bg-secondary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; margin-left: -6px; color: white;
+  }
+
+  .member-avatar:first-child { margin-left: 0; }
+  .project-due { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    text-align: left; padding: 12px 16px; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text-muted); font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary); position: sticky; top: 0;
+  }
+
+  .data-table td {
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    font-size: 14px; vertical-align: middle;
+  }
+
+  .data-table tr:hover td { background: var(--bg-hover); }
+  .data-table tr { transition: var(--transition); }
+
+  /* TAGS / BADGES */
+  .tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
+  }
+
+  .tag-purple { background: rgba(108,92,231,0.15); color: var(--accent-light); }
+  .tag-green { background: rgba(0,184,148,0.15); color: var(--success); }
+  .tag-orange { background: rgba(225,112,85,0.15); color: var(--danger); }
+  .tag-yellow { background: rgba(253,203,110,0.15); color: #e0a800; }
+  .tag-blue { background: rgba(116,185,255,0.15); color: var(--info); }
+  .tag-gray { background: rgba(160,163,177,0.15); color: var(--text-secondary); }
+
+  /* KANBAN */
+  .kanban-board { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 16px; min-height: calc(100vh - 280px); }
+  .kanban-column {
+    min-width: 300px; max-width: 340px; flex-shrink: 0;
+    background: var(--bg-secondary); border-radius: var(--radius);
+    border: 1px solid var(--border); display: flex; flex-direction: column;
+    max-height: calc(100vh - 280px);
+  }
+
+  .kanban-header {
+    padding: 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: var(--bg-secondary);
+    border-radius: var(--radius) var(--radius) 0 0; z-index: 2;
+  }
+
+  .kanban-header h3 { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .kanban-count {
+    background: var(--bg-tertiary); padding: 2px 8px; border-radius: 10px;
+    font-size: 12px; color: var(--text-muted);
+  }
+
+  .kanban-body { flex: 1; overflow-y: auto; padding: 12px; }
+
+  .kanban-card {
+    background: var(--bg-tertiary); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 14px; margin-bottom: 10px;
+    cursor: grab; transition: var(--transition); position: relative;
+  }
+
+  .kanban-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); border-color: var(--accent); }
+  .kanban-card.dragging { opacity: 0.5; transform: rotate(2deg); }
+
+  .kanban-card .card-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .kanban-card .card-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.4; }
+  .kanban-card .card-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+  .kanban-card .card-footer { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted); }
+
+  /* NOTES */
+  .notes-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .note-card {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; transition: var(--transition);
+    cursor: pointer; display: flex; flex-direction: column;
+  }
+
+  .note-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+
+  .note-color-strip { height: 6px; }
+  .note-content { padding: 18px; flex: 1; display: flex; flex-direction: column; }
+  .note-content h4 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .note-content p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; flex: 1; }
+  .note-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted); }
+
+  /* CALENDAR */
+  .calendar-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+  }
+
+  .calendar-header-cell {
+    padding: 10px; text-align: center; font-size: 12px;
+    font-weight: 600; color: var(--text-muted); text-transform: uppercase;
+  }
+
+  .calendar-cell {
+    min-height: 100px; background: var(--bg-secondary); border: 1px solid var(--border);
+    padding: 8px; transition: var(--transition); position: relative;
+  }
+
+  .calendar-cell:hover { background: var(--bg-hover); }
+  .calendar-cell.today { border-color: var(--accent); background: rgba(108,92,231,0.05); }
+  .calendar-cell.other-month { opacity: 0.3; }
+
+  .calendar-date { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .calendar-event {
+    font-size: 11px; padding: 2px 6px; border-radius: 4px;
+    margin-bottom: 2px; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; cursor: pointer;
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px); z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden; transition: var(--transition);
+    padding: 20px;
+  }
+
+  .modal-overlay.active { opacity: 1; visibility: visible; }
+
+  .modal {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 16px; width: 100%; max-width: 640px;
+    max-height: 90vh; overflow-y: auto; transform: translateY(20px) scale(0.95);
+    transition: var(--transition); box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  }
+
+  .modal-overlay.active .modal { transform: translateY(0) scale(1); }
+
+  .modal-header {
+    padding: 20px 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: var(--bg-secondary); z-index: 5;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .modal-header h3 { font-size: 18px; font-weight: 700; }
+  .modal-close {
+    background: none; border: none; color: var(--text-muted);
+    font-size: 24px; cursor: pointer; padding: 4px; line-height: 1;
+  }
+  .modal-close:hover { color: var(--text-primary); }
+
+  .modal-body { padding: 24px; }
+  .modal-footer {
+    padding: 16px 24px; border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end; gap: 10px;
+    position: sticky; bottom: 0; background: var(--bg-secondary);
+    border-radius: 0 0 16px 16px;
+  }
+
+  /* FORMS */
+  .form-group { margin-bottom: 18px; }
+  .form-group label {
+    display: block; font-size: 13px; font-weight: 600;
+    color: var(--text-secondary); margin-bottom: 6px;
+  }
+
+  .form-control {
+    width: 100%; padding: 10px 14px; background: var(--bg-tertiary);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-primary); font-size: 14px; transition: var(--transition);
+    outline: none; font-family: inherit;
+  }
+
+  .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,92,231,0.15); }
+  textarea.form-control { resize: vertical; min-height: 100px; }
+  select.form-control { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236c7086' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* CHECKBOX CUSTOM */
+  .checkbox-wrapper { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .checkbox-wrapper input[type="checkbox"] { display: none; }
+  .custom-checkbox {
+    width: 20px; height: 20px; border: 2px solid var(--border);
+    border-radius: 5px; display: flex; align-items: center; justify-content: center;
+    transition: var(--transition); flex-shrink: 0;
+  }
+
+  .checkbox-wrapper input:checked + .custom-checkbox { background: var(--accent); border-color: var(--accent); }
+  .custom-checkbox::after { content: '✓'; font-size: 12px; color: white; opacity: 0; transition: var(--transition); }
+  .checkbox-wrapper input:checked + .custom-checkbox::after { opacity: 1; }
+
+  /* TASK ITEM */
+  .task-item {
+    display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); margin-bottom: 8px;
+    transition: var(--transition); cursor: pointer;
+  }
+
+  .task-item:hover { border-color: var(--accent); }
+  .task-item.completed .task-text { text-decoration: line-through; color: var(--text-muted); }
+  .task-text { flex: 1; font-size: 14px; }
+  .task-priority { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* SUBTASKS */
+  .subtask-list { margin-left: 20px; margin-top: 6px; }
+  .subtask-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; color: var(--text-secondary); }
+
+  /* FILTERS BAR */
+  .filters-bar {
+    display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-chip {
+    padding: 6px 14px; border-radius: 20px; font-size: 13px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    cursor: pointer; transition: var(--transition); color: var(--text-secondary);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .filter-chip:hover, .filter-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+  .tab {
+    padding: 10px 20px; font-size: 14px; cursor: pointer;
+    color: var(--text-secondary); border-bottom: 2px solid transparent;
+    transition: var(--transition); font-weight: 500;
+  }
+
+  .tab:hover { color: var(--text-primary); }
+  .tab.active { color: var(--accent-light); border-bottom-color: var(--accent); }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+  .empty-state .empty-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.3; }
+  .empty-state h3 { font-size: 20px; color: var(--text-secondary); margin-bottom: 8px; }
+  .empty-state p { font-size: 14px; margin-bottom: 20px; }
+
+  /* TOAST */
+  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    padding: 14px 20px; border-radius: var(--radius-sm);
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    box-shadow: var(--shadow); display: flex; align-items: center; gap: 10px;
+    font-size: 14px; animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+    min-width: 280px;
+  }
+
+  .toast-success { border-left: 4px solid var(--success); }
+  .toast-error { border-left: 4px solid var(--danger); }
+  .toast-info { border-left: 4px solid var(--info); }
+
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes fadeOut { to { opacity: 0; transform: translateX(100%); } }
+
+  /* DRAG DROP */
+  .kanban-card.drag-over { border-color: var(--accent); background: rgba(108,92,231,0.05); }
+
+  /* SECTION VISIBILITY */
+  .page-section { display: none; }
+  .page-section.active { display: block; animation: fadeIn 0.3s ease; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* PROJECT DETAIL */
+  .detail-header { display: flex; gap: 16px; align-items: center; margin-bottom: 24px; }
+  .back-btn { background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; padding: 8px; }
+  .back-btn:hover { color: var(--text-primary); }
+
+  /* CONTEXT MENU */
+  .context-menu {
+    position: fixed; background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); box-shadow: var(--shadow);
+    z-index: 1500; min-width: 180px; padding: 6px; display: none;
+  }
+
+  .context-menu-item {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+    border-radius: 6px; font-size: 13px; cursor: pointer; transition: var(--transition);
+    color: var(--text-secondary);
+  }
+
+  .context-menu-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .context-menu-item.danger:hover { background: rgba(225,112,85,0.15); color: var(--danger); }
+  .context-menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .sidebar { position: fixed; left: -260px; top: 0; bottom: 0; z-index: 200; }
+    .sidebar.open { left: 0; box-shadow: var(--shadow); }
+    .menu-toggle { display: block; }
+    .header-search { display: none; }
+    .kanban-column { min-width: 280px; }
+    .form-row { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .projects-grid { grid-template-columns: 1fr; }
+    .content { padding: 16px; }
+  }
+
+  /* SIDEBAR OVERLAY MOBILE */
+  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 199; }
+  .sidebar-overlay.active { display: block; }
+
+  /* NOTE EDITOR RICH */
+  .note-editor { min-height: 300px; outline: none; font-size: 14px; line-height: 1.8; color: var(--text-primary); }
+  .note-editor:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,92,231,0.15); }
+
+  /* RECENT ACTIVITY */
+  .activity-list { list-style: none; }
+  .activity-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .activity-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+  .activity-text { color: var(--text-secondary); line-height: 1.5; }
+  .activity-text strong { color: var(--text-primary); }
+  .activity-time { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* DROPDOWN */
+  .dropdown { position: relative; display: inline-block; }
+  .dropdown-menu {
+    position: absolute; right: 0; top: 100%; background: var(--bg-secondary);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow); min-width: 200px; z-index: 50;
+    display: none; margin-top: 4px; padding: 6px;
+  }
+
+  .dropdown-menu.show { display: block; animation: fadeIn 0.2s ease; }
+
+  /* COLOR PICKER */
+  .color-options { display: flex; gap: 8px; flex-wrap: wrap; }
+  .color-option {
+    width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+    border: 3px solid transparent; transition: var(--transition);
+  }
+
+  .color-option:hover, .color-option.selected { border-color: white; transform: scale(1.1); }
+
+  /* SEARCH RESULTS */
+  .search-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow); z-index: 50; display: none; max-height: 400px; overflow-y: auto; }
+  .search-results.active { display: block; }
+
+  /* QUICK ADD */
+  .quick-add-bar {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    z-index: 100; width: min(600px, calc(100vw - 48px));
+  }
+
+  .quick-add-input {
+    width: 100%; padding: 14px 20px 14px 48px; background: var(--bg-secondary);
+    border: 1px solid var(--border); border-radius: 16px; color: var(--text-primary);
+    font-size: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); outline: none;
+    transition: var(--transition);
+  }
+
+  .quick-add-input:focus { border-color: var(--accent); box-shadow: 0 8px 32px rgba(108,92,231,0.3); }
+  .quick-add-icon { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); font-size: 20px; color: var(--text-muted); }
+
+  /* PRIORITY INDICATORS */
+  .priority-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+</style>
 </head>
 <body>
 
-    <div class="container">
-        <header>
-            <h1>📝 Idea Capture Station</h1>
-            <p>Tu espacio personal para atrapar ideas, notas y pensamientos del día.</p>
-        </header>
+<div class="app-container">
+  <!-- SIDEBAR OVERLAY (mobile) -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-        <!-- 1. Área de Entrada -->
-        <section id="input-area">
-            <h2>Añadir una Nueva Idea</h2>
-            <textarea id="idea-input" placeholder="Escribe tu idea aquí... ¿Qué se te ocurrió hoy?"></textarea>
-            <button onclick="saveIdea()">Guardar Idea</button>
-        </section>
-
-        <!-- 2. Lista de Ideas Guardadas -->
-        <section id="ideas-list">
-            <h2>🚀 Mis Ideas Atrapadas</h2>
-            <div id="idea-container">
-                <!-- Aquí se cargarán las ideas con JavaScript -->
-                <p style="color: #95a5a6;">¡Aún no tienes ideas guardadas! Escribe la primera y empieza a capturar.</p>
-            </div>
-
-             <!-- Botones de utilidad (Borrar todo) -->
-             <div class="utility-buttons">
-                 <button onclick="clearAllIdeas()">🗑️ Borrar Todas las Ideas</button>
-             </div>
-        </section>
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">T</div>
+      <div class="sidebar-title">
+        <h1>TaskFlow Pro</h1>
+        <span>Tu Mano Derecha Digital</span>
+      </div>
     </div>
 
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-title">Principal</div>
+        <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
+          <span class="icon">📊</span> Dashboard
+        </div>
+        <div class="nav-item" data-page="projects" onclick="navigateTo('projects')">
+          <span class="icon">📁</span> Proyectos
+          <span class="badge" id="projectCount">0</span>
+        </div>
+        <div class="nav-item" data-page="tasks" onclick="navigateTo('tasks')">
+          <span class="icon">✅</span> Tareas
+          <span class="badge" id="taskCount">0</span>
+        </div>
+      </div>
 
-    <!-- JavaScript Lógica (Todo en el mismo archivo) -->
-    <script>
-        // Función para obtener la lista de ideas del localStorage, o un array vacío si no existe.
-        function getIdeas() {
-            const ideasJson = localStorage.getItem('ideas');
-            return ideasJson ? JSON.parse(ideasJson) : [];
-        }
+      <div class="nav-section">
+        <div class="nav-section-title">Contenido</div>
+        <div class="nav-item" data-page="notes" onclick="navigateTo('notes')">
+          <span class="icon">📝</span> Notas
+          <span class="badge" id="noteCount">0</span>
+        </div>
+        <div class="nav-item" data-page="calendar" onclick="navigateTo('calendar')">
+          <span class="icon">📅</span> Calendario
+        </div>
+      </div>
 
-        // Función para guardar todas las ideas en el localStorage como un array JSON.
-        function saveAllIdeas(ideas) {
-            localStorage.setItem('ideas', JSON.stringify(ideas));
-        }
+      <div class="nav-section">
+        <div class="nav-section-title">Vistas</div>
+        <div class="nav-item" data-page="kanban" onclick="navigateTo('kanban')">
+          <span class="icon">📋</span> Tablero Kanban
+        </div>
+        <div class="nav-item" data-page="inbox" onclick="navigateTo('inbox')">
+          <span class="icon">📥</span> Bandeja de Entrada
+          <span class="badge" id="inboxCount">0</span>
+        </div>
+      </div>
+    </nav>
 
-        /**
-         * 💾 Guarda la idea del textarea y actualiza la lista.
-         */
-        function saveIdea() {
-            const inputElement = document.getElementById('idea-input');
-            const ideaText = inputElement.value.trim();
+    <div class="sidebar-footer">
+      <div class="storage-info">
+        <span>💾 Almacenamiento</span>
+        <span id="storagePercent">0%</span>
+      </div>
+      <div class="storage-bar">
+        <div class="storage-fill" id="storageFill" style="width: 0%"></div>
+      </div>
+    </div>
+  </aside>
 
-            if (ideaText === "") {
-                alert("Por favor, escribe algo antes de guardar.");
-                return;
-            }
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <!-- HEADER -->
+    <header class="header">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="header-search">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Buscar tareas, proyectos, notas..." id="globalSearch" oninput="handleGlobalSearch(this.value)">
+        <div class="search-results" id="searchResults"></div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="openQuickAddModal()">⚡ + Rápido</button>
+        <button class="btn btn-ghost" onclick="exportAllData()" title="Exportar datos">📤</button>
+      </div>
+    </header>
 
-            // 1. Obtener las ideas existentes
-            let ideas = getIdeas();
+    <!-- CONTENT AREA -->
+    <div class="content" id="mainContent">
 
-            // 2. Crear la nueva idea con fecha y hora
-            const newIdea = {
-                text: ideaText,
-                date: new Date().toLocaleString('es-ES', {
-                    year: 'numeric', month: 'long', day: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
-                })
-            };
+      <!-- DASHBOARD PAGE -->
+      <section class="page-section active" id="page-dashboard">
+        <div class="page-header">
+          <div class="page-title">
+            <h2>Dashboard</h2>
+            <p id="greetingText">Bienvenido de vuelta 👋</p>
+          </div>
+          <span style="color: var(--text-muted); font-size: 14px;" id="currentDate"></span>
+        </div>
 
-            // 3. Agregar la nueva idea al inicio del array
-            ideas.unshift(newIdea);
+        <div class="stats-grid" id="statsGrid"></div>
 
-            // 4. Guardar el nuevo array en localStorage
-            saveAllIdeas(ideas);
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+          <div>
+            <h3 style="margin-bottom: 16px; font-size: 18px;">📋 Tareas Pendientes</h3>
+            <div id="dashboardTasks"></div>
+          </div>
+          <div>
+            <h3 style="margin-bottom: 16px; font-size: 18px;">⏰ Actividad Reciente</h3>
+            <ul class="activity-list" id="recentActivity"></ul>
+          </div>
+        </div>
 
-            // 5. Limpiar el input y refrescar la vista
-            inputElement.value = '';
-            renderIdeas();
-        }
+        <div style="margin-top: 28px;">
+          <h3 style="margin-bottom: 16px; font-size: 18px;">🔥 Próximos Vencimientos</h3>
+          <div id="upcomingDeadlines"></div>
+        </div>
+      </section>
 
-        /**
-         * ✨ Renderiza todas las ideas guardadas en el DOM (la página).
-         */
-        function renderIdeas() {
-            const ideas = getIdeas();
-            const container = document.getElementById('idea-container');
-            container.innerHTML = ''; // Limpiar contenido anterior
+      <!-- PROJECTS PAGE -->
+      <section class="page-section" id="page-projects">
+        <div class="page-header">
+          <div class="page-title">
+            <h2>📁 Proyectos</h2>
+            <p>Gestiona todos tus proyectos en un solo lugar</p>
+          </div>
+          <button class="btn btn-primary" onclick="openProjectModal()">+ Nuevo Proyecto</button>
+        </div>
+        <div class="filters-bar">
+          <span class="filter-chip active" onclick="filterProjects('all', this)">Todos</span>
+          <span class="filter-chip" onclick="filterProjects('active', this)">🟢 Activos</span>
+          <span class="filter-chip" onclick="filterProjects('completed', this)">🔵 Completados</span>
+          <span class="filter-chip" onclick="filterProjects('archived', this)">📦 Archivados</span>
+        </div>
+        <div class="projects-grid" id="projectsGrid"></div>
+      </section>
 
-            if (ideas.length === 0) {
-                // Mostrar el mensaje si no hay ideas
-                container.innerHTML = '<p style="color: #95a5a6;">¡No has guardado ninguna idea todavía! Usa la caja de arriba para empezar.</p>';
-                return;
-            }
+      <!-- TASKS PAGE -->
+      <section class="page-section" id="page-tasks">
+        <div class="page-header">
+          <div class="page-title">
+            <h2>✅ Tareas</h2>
+            <p>Organiza y da seguimiento a todas tus tareas</p>
+          </div>
+          <button class="btn btn-primary" onclick="openTaskModal()">+ Nueva Tarea</button>
+        </div>
 
-            ideas.forEach((idea, index) => {
-                const card = document.createElement('div');
-                card.className = 'idea-card';
-                
-                // Estructura HTML del mensaje
-                card.innerHTML = `
-                    <div class="idea-content">${idea.text}</div>
-                    <span class="idea-metadata">Guardada el ${idea.date}</span>
-                `;
+        <div class="tabs">
+          <span class="tab active" onclick="switchTaskView('list', this)">📋 Lista</span>
+          <span class="tab" onclick="switchTaskView('kanban', this)">📋 Kanban</span>
+        </div>
 
-                container.appendChild(card);
-            });
-        }
+        <div id="taskListView">
+          <div class="filters-bar">
+            <span class="filter-chip active" onclick="filterTasks('all', this)">Todas</span>
+            <span class="filter-chip" onclick="filterTasks('pending', this)">⏳ Pendientes</span>
+            <span class="filter-chip" onclick="filterTasks('in-progress', this)">🔄 En Progreso</span>
+            <span class="filter-chip" onclick="filterTasks('completed', this)">✅ Completadas</span>
+            <span class="filter-chip" onclick="filterTasks('overdue', this)">🔴 Vencidas</span>
+          </div>
+          <div id="tasksList"></div>
+        </div>
 
-        /**
-         * 🗑️ Borra todas las ideas de localStorage y refresca la vista.
-         */
-        function clearAllIdeas() {
-            if (confirm("⚠️ ¿Estás seguro? ¡Esto borrará absolutamente TODAS tus ideas guardadas en este navegador!")) {
-                localStorage.removeItem('ideas'); // Elimina el dato del almacenamiento local
-                renderIdeas(); // Vuelve a renderizar la página vacía
-            }
-        }
+        <div id="taskKanbanView" style="display:none;">
+          <div class="kanban-board" id="taskKanbanBoard"></div>
+        </div>
+      </section>
 
-        // --- Inicialización: Esto se ejecuta cuando la página carga por primera vez ---
-        window.onload = function() {
-             renderIdeas();
-        };
+      <!-- NOTES PAGE -->
+      <section class="page-section" id="page-notes">
+        <div class="page-header">
+          <div class="page-title">
+            <h2>📝 Notas</h2>
+            <p>Captura y organiza tus ideas libremente</p>
+          </div>
+          <button class="btn btn-primary" onclick="openNoteModal()">+ Nueva Nota</button>
+        </div>
 
-    </script>
+        <div class="filters-bar">
+          <span class="filter-chip active" onclick="filterNotes('all', this)">Todas</span>
+          <span class="filter-chip" onclick="filterNotes('personal', this)">🟣 Personal</span>
+          <span class="filter-chip" onclick="filterNotes('work', this)">🔵 Trabajo</span>
+          <span class="filter-chip" onclick="filterNotes('ideas', this)">💡 Ideas</span>
+          <span class="filter-chip" onclick="filterNotes('important', this)">⭐ Importantes</span>
+        </div>
+
+        <div class="notes-grid" id="notesGrid"></div>
+      </section>
+
+      <!-- CALENDAR PAGE -->
+      <section class="page-section" id="page-calendar">
+        <div class="page-header">
+          <div class="page-title">
+            <h2>📅 Calendario</h2>
+            <p>Visualiza tus compromisos en el tiempo</p>
+          </div>
+          <div style="display:flex; gap: 8px;">
+            <button class="btn btn-secondary" onclick="changeMonth(-1)">◀</button>
+            <span id="calendarMonthTitle" style="padding: 9px 16px; font-weight: 700; font-size: 14px;"></span>
+            <button class="btn btn-secondary" onclick="changeMonth(1)">▶</button>
+          </div>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </section>
+
+      <!-- KANBAN PAGE -->
+      <section class="page-section" id="page-kanban">
+        <div class="page-header">
+          <div class="page-title">
+            <h2>📋 Tablero Kanban</h2>
+            <p>Mueve tareas entre columnas para gestionar tu flujo de trabajo</p>
+          </div>
+          <button class="btn btn-primary" onclick="openTaskModal()">+ Nueva Tarea</button>
+        </div>
+        <div class="kanban-board" id="mainKanbanBoard"></div>
+      </section>
+
+      <!-- INBOX PAGE -->
+      <section class="page-section" id="page-inbox">
+        <div class="page-header">
+          <div class="page-title">
+            <h2>📥 Bandeja de Entrada</h2>
+            <p>Todas tus capturas rápidas en un solo lugar</p>
+          </div>
+          <button class="btn btn-primary" onclick="openQuickAddModal()">⚡ Captura Rápida</button>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">Aquí llegarán las capturas rápidas. Organízalas moviendo a proyectos o marcándolas como completadas.</p>
+        <div id="inboxList"></div>
+      </section>
+
+      <!-- PROJECT DETAIL PAGE -->
+      <section class="page-section" id="page-project-detail">
+        <div class="page-header">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <button class="back-btn" onclick="navigateTo('projects')">←</button>
+            <div class="page-title" style="margin-bottom:0;">
+              <h2 id="projectDetailTitle">Proyecto</h2>
+              <p id="projectDetailDesc"></p>
+            </div>
+          </div>
+          <div style="display:flex; gap: 8px;">
+            <button class="btn btn-secondary" onclick="openProjectModal(document.getElementById('projectDetailId').value)">✏️ Editar</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteCurrentProject()">🗑️ Eliminar</button>
+          </div>
+        </div>
+
+        <div id="projectDetailContent"></div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- MODALS -->
+
+<!-- QUICK ADD MODAL -->
+<div class="modal-overlay" id="quickAddModal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <h3>⚡ Captura Rápida</h3>
+      <button class="modal-close" onclick="closeModal('quickAddModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>¿Qué tienes en mente?</label>
+        <input type="text" class="form-control" id="quickAddText" placeholder="Escribe algo aquí...">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tipo</label>
+          <select class="form-control" id="quickAddType">
+            <option value="task">✅ Tarea</option>
+            <option value="note">📝 Nota</option>
+            <option value="inbox">📥 Bandeja</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Prioridad</label>
+          <select class="form-control" id="quickAddPriority">
+            <option value="low">🟢 Baja</option>
+            <option value="medium">🟡 Media</option>
+            <option value="high">🟠 Alta</option>
+            <option value="urgent">🔴 Urgente</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Proyecto (opcional)</label>
+          <select class="form-control" id="quickAddProject">
+            <option value="">-- Sin proyecto --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha límite (opcional)</label>
+          <input type="date" class="form-control" id="quickAddDate">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('quickAddModal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitQuickAdd()">⚡ Capturar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROJECT MODAL -->
+<div class="modal-overlay" id="projectModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="projectModalTitle">Nuevo Proyecto</h3>
+      <button class="modal-close" onclick="closeModal('projectModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="projectId">
+      <div class="form-group">
+        <label>Nombre del proyecto *</label>
+        <input type="text" class="form-control" id="projectName" placeholder="Mi Proyecto Increíble">
+      </div>
+      <div class="form-group">
+        <label>Descripción</label>
+        <textarea class="form-control" id="projectDesc" rows="3" placeholder="Describe brevemente el proyecto..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Estado</label>
+          <select class="form-control" id="projectStatus">
+            <option value="active">🟢 Activo</option>
+            <option value="paused">🟡 Pausado</option>
+            <option value="completed">🔵 Completado</option>
+            <option value="archived">📦 Archivado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Prioridad</label>
+          <select class="form-control" id="projectPriority">
+            <option value="low">🟢 Baja</option>
+            <option value="medium">🟡 Media</option>
+            <option value="high">🟠 Alta</option>
+            <option value="urgent">🔴 Urgente</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fecha de inicio</label>
+          <input type="date" class="form-control" id="projectStartDate">
+        </div>
+        <div class="form-group">
+          <label>Fecha límite</label>
+          <input type="date" class="form-control" id="projectEndDate">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Color del proyecto</label>
+        <div class="color-options">
+          <div class="color-option selected" style="background:#6c5ce7" data-color="#6c5ce7" onclick="selectColor(this)"></div>
+          <div class="color-option" style="background:#00b894" data-color="#00b894" onclick="selectColor(this)"></div>
+          <div class="color-option" style="background:#e17055" data-color="#e17055" onclick="selectColor(this)"></div>
+          <div class="color-option" style="background:#fdcb6e" data-color="#fdcb6e" onclick="selectColor(this)"></div>
+          <div class="color-option" style="background:#74b9ff" data-color="#74b9ff" onclick="selectColor(this)"></div>
+          <div class="color-option" style="background:#a29bfe" data-color="#a29bfe" onclick="selectColor(this)"></div>
+          <div class="color-option" style="background:#fd79a8" data-color="#fd79a8" onclick="selectColor(this)"></div>
+          <div class="color-option" style="background:#55efc4" data-color="#55efc4" onclick="selectColor(this)"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('projectModal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveProject()">💾 Guardar Proyecto</button>
+    </div>
+  </div>
+</div>
+
+<!-- TASK MODAL -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="taskModalTitle">Nueva Tarea</h3>
+      <button class="modal-close" onclick="closeModal('taskModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="taskId">
+      <div class="form-group">
+        <label>Título de la tarea *</label>
+        <input type="text" class="form-control" id="taskTitle" placeholder="¿Qué necesitas hacer?">
+      </div>
+      <div class="form-group">
+        <label>Descripción</label>
+        <textarea class="form-control" id="taskDesc" rows="3" placeholder="Detalles adicionales..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Prioridad</label>
+          <select class="form-control" id="taskPriority">
+            <option value="low">🟢 Baja</option>
+            <option value="medium">🟡 Media</option>
+            <option value="high">🟠 Alta</option>
+            <option value="urgent">🔴 Urgente</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select class="form-control" id="taskStatus">
+            <option value="pending">⏳ Pendiente</option>
+            <option value="in-progress">🔄 En Progreso</option>
+            <option value="completed">✅ Completada</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fecha de inicio</label>
+          <input type="date" class="form-control" id="taskStartDate">
+        </div>
+        <div class="form-group">
+          <label>Fecha límite</label>
+          <input type="date" class="form-control" id="taskDueDate">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Proyecto asociado</label>
+          <select class="form-control" id="taskProject">
+            <option value="">-- Sin proyecto --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Categoría</label>
+          <select class="form-control" id="taskCategory">
+            <option value="">-- Sin categoría --</option>
+            <option value="dev">💻 Desarrollo</option>
+            <option value="design">🎨 Diseño</option>
+            <option value="marketing">📢 Marketing</option>
+            <option value="research">🔬 Investigación</option>
+            <option value="admin">⚙️ Administración</option>
+            <option value="personal">🏠 Personal</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Subtareas</label>
+        <div id="subtasksContainer"></div>
+        <button class="btn btn-sm btn-secondary" style="margin-top:6px;" onclick="addSubtaskField()">+ Agregar Subtarea</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="deleteTaskBtn" onclick="deleteCurrentTask()" style="margin-right:auto; display:none;">🗑️</button>
+      <button class="btn btn-secondary" onclick="closeModal('taskModal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveTask()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTE MODAL -->
+<div class="modal-overlay" id="noteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="noteModalTitle">Nueva Nota</h3>
+      <button class="modal-close" onclick="closeModal('noteModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="noteId">
+      <div class="form-group">
+        <label>Título</label>
+        <input type="text" class="form-control" id="noteTitle" placeholder="Título de la nota...">
+      </div>
+      <div class="form-group">
+        <label>Categoría</label>
+        <select class="form-control" id="noteCategory">
+          <option value="personal">🟣 Personal</option>
+          <option value="work">🔵 Trabajo</option>
+          <option value="ideas">💡 Ideas</option>
+          <option value="important">⭐ Importante</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Contenido</label>
+        <textarea class="form-control note-editor" id="noteContent" rows="12" placeholder="Escribe tu nota aquí..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Color</label>
+        <div class="color-options">
+          <div class="color-option selected" style="background:#6c5ce7" data-color="#6c5ce7" onclick="selectNoteColor(this)"></div>
+          <div class="color-option" style="background:#00b894" data-color="#00b894" onclick="selectNoteColor(this)"></div>
+          <div class="color-option" style="background:#e17055" data-color="#e17055" onclick="selectNoteColor(this)"></div>
+          <div class="color-option" style="background:#fdcb6e" data-color="#fdcb6e" onclick="selectNoteColor(this)"></div>
+          <div class="color-option" style="background:#74b9ff" data-color="#74b9ff" onclick="selectNoteColor(this)"></div>
+          <div class="color-option" style="background:#fd79a8" data-color="#fd79a8" onclick="selectNoteColor(this)"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="deleteNoteBtn" onclick="deleteCurrentNote()" style="margin-right:auto; display:none;">🗑️ Eliminar</button>
+      <button class="btn btn-secondary" onclick="closeModal('noteModal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveNote()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div class="context-menu" id="contextMenu">
+  <div class="context-menu-item" onclick="contextEdit()">✏️ Editar</div>
+  <div class="context-menu-item" onclick="contextDuplicate()">📋 Duplicar</div>
+  <div class="context-menu-divider"></div>
+  <div class="context-menu-item" onclick="contextMoveToInbox()">📥 Mover a Bandeja</div>
+  <div class="context-menu-item" onclick="contextChangeStatus()">🔄 Cambiar Estado</div>
+  <div class="context-menu-divider"></div>
+  <div class="context-menu-item danger" onclick="contextDelete()">🗑️ Eliminar</div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ============================================
+// TASKFLOW PRO - MAIN APPLICATION
+// ============================================
+
+const APP_KEY = 'taskflow_pro_data_v2';
+let appData = loadData();
+let currentPage = 'dashboard';
+let currentFilter = { tasks: 'all', projects: 'all', notes: 'all' };
+let calendarDate = new Date();
+let contextTarget = null;
+let contextType = null;
+
+// ==================== DATA LAYER ====================
+
+function getDefaultData() {
+  return {
+    projects: [],
+    tasks: [],
+    notes: [],
+    inbox: [],
+    activities: [],
+    settings: { theme: 'dark' }
+  };
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(APP_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      return { ...getDefaultData(), ...d };
+    }
+  } catch(e) {}
+  return getDefaultData();
+}
+
+function saveData() {
+  try {
+    localStorage.setItem(APP_KEY, JSON.stringify(appData));
+    updateStorageIndicator();
+  } catch(e) {
+    if (e.name === 'QuotaExceededError') {
+      showToast('Almacenamiento lleno. Elimina algunos items.', 'error');
+    }
+  }
+}
+
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+}
+
+function addActivity(text) {
+  appData.activities.unshift({ text, time: new Date().toISOString() });
+  if (appData.activities.length > 50) appData.activities = appData.activities.slice(0, 50);
+  saveData();
+}
+
+// ==================== NAVIGATION ====================
+
+function navigateTo(page) {
+  currentPage = page;
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if (navItem) navItem.classList.add('active');
+
+  renderPage(page);
+  closeSidebar();
+}
+
+function renderPage(page) {
+  switch(page) {
+    case 'dashboard': renderDashboard(); break;
+    case 'projects': renderProjects(); break;
+    case 'tasks': renderTasks(); break;
+    case 'notes': renderNotes(); break;
+    case 'calendar': renderCalendar(); break;
+    case 'kanban': renderKanbanBoard(); break;
+    case 'inbox': renderInbox(); break;
+  }
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('active');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('active');
+}
+
+// ==================== TOAST ====================
+
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  toast.innerHTML = `<span>${icons[type] || '📢'}</span><span>${message}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// ==================== MODAL HELPERS ====================
+
+function openModal(id) {
+  document.getElementById(id).classList.add('active');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
+});
+
+// ==================== STORAGE INDICATOR ====================
+
+function updateStorageIndicator() {
+  const bytes = new Blob([JSON.stringify(appData)]).size;
+  const maxBytes = 5 * 1024 * 1024; // 5MB limit
+  const pct = Math.min((bytes / maxBytes) * 100, 100);
+  document.getElementById('storageFill').style.width = pct + '%';
+  document.getElementById('storagePercent').textContent = pct.toFixed(1) + '%';
+}
+
+// ==================== GREETING ====================
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 6) return '🌙 Buenas noches';
+  if (h < 12) return '☀️ Buenos días';
+  if (h < 19) return '🌤️ Buenas tardes';
+  return '🌙 Buenas noches';
+}
+
+// ==================== DASHBOARD ====================
+
+function renderDashboard() {
+  document.getElementById('greetingText').textContent = getGreeting();
+  const now = new Date();
+  document.getElementById('currentDate').textContent = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  const totalTasks = appData.tasks.length;
+  const pendingTasks = appData.tasks.filter(t => t.status !== 'completed').length;
+  const overdueTasks = appData.tasks.filter(t => {
+    if (t.status === 'completed') return false;
+    return t.dueDate && new Date(t.dueDate) < now && new Date(t.dueDate).toDateString() !== now.toDateString();
+  }).length;
+  const completedTasks = appData.tasks.filter(t => t.status === 'completed').length;
+  const activeProjects = appData.projects.filter(p => p.status === 'active').length;
+  const totalNotes = appData.notes.length;
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(108,92,231,0.15); color:var(--accent-light);">📋</div>
+      <div class="stat-value">${totalTasks}</div>
+      <div class="stat-label">Total Tareas</div>
+      <div class="stat-change" style="color:var(--text-muted);">📊 En total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(253,203,110,0.15); color:#fdcb6e;">⏳</div>
+      <div class="stat-value">${pendingTasks}</div>
+      <div class="stat-label">Pendientes</div>
+      <div class="stat-change" style="color:${overdueTasks > 0 ? 'var(--danger)' : 'var(--success)'};">${overdueTasks > 0 ? `🔴 ${overdueTasks} vencidas` : '✅ Todo al día'}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(0,184,148,0.15); color:var(--success);">✅</div>
+      <div class="stat-value">${completedTasks}</div>
+      <div class="stat-label">Completadas</div>
+      <div class="stat-change" style="color:var(--success);">🎉 ${totalTasks > 0 ? Math.round(completedTasks/totalTasks*100) : 0}% completado</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(116,185,255,0.15); color:var(--info);">📁</div>
+      <div class="stat-value">${activeProjects}</div>
+      <div class="stat-label">Proyectos Activos</div>
+      <div class="stat-change" style="color:var(--text-muted);">📊 Total: ${appData.projects.length}</div>
+    </div>
+  `;
+
+  // Dashboard tasks (pending, urgent first)
+  const pending = appData.tasks.filter(t => t.status !== 'completed').sort((a,b) => {
+    const prio = { urgent: 0, high: 1, medium: 2, low: 3 };
+    return (prio[a.priority]||2) - (prio[b.priority]||2);
+  }).slice(0, 8);
+
+  document.getElementById('dashboardTasks').innerHTML = pending.length ?
+    pending.map(t => `
+      <div class="task-item" onclick="openTaskModal('${t.id}')" style="margin-bottom:6px;">
+        <span class="priority-dot" style="background:${getPriorityColor(t.priority)}"></span>
+        <input type="checkbox" class="custom-checkbox-task" ${t.status === 'completed' ? 'checked' : ''} onclick="event.stopPropagation(); toggleTaskStatus('${t.id}', this)" style="width:20px;height:20px;accent-color:var(--accent);">
+        <span class="task-text" style="${t.status === 'completed' ? 'text-decoration:line-through;color:var(--text-muted)' : ''}">${escapeHtml(t.title)}</span>
+        ${t.dueDate ? `<span class="project-due">📅 ${formatDateShort(t.dueDate)}</span>` : ''}
+      </div>
+    `).join('') :
+    '<div class="empty-state"><p>No hay tareas pendientes. ¡Excelente! 🎉</p></div>';
+
+  // Recent activity
+  document.getElementById('recentActivity').innerHTML = appData.activities.length ?
+    appData.activities.slice(0, 10).map(a => {
+      const dots = ['var(--accent)', 'var(--success)', 'var(--warning)', 'var(--danger)', 'var(--info)'];
+      return `
+        <li class="activity-item">
+          <span class="activity-dot" style="background:${dots[Math.floor(Math.random()*dots.length)]}"></span>
+          <div>
+            <div class="activity-text">${a.text}</div>
+            <div class="activity-time">${timeAgo(a.time)}</div>
+          </div>
+        </li>`;
+    }).join('') :
+    '<div class="empty-state"><p>Aún no hay actividad</p></div>';
+
+  // Upcoming deadlines
+  const upcoming = appData.tasks.filter(t => {
+    if (!t.dueDate || t.status === 'completed') return false;
+    const d = new Date(t.dueDate);
+    const now = new Date();
+    now.setHours(0,0,0,0);
+    return d >= now && d <= new Date(now.getTime() + 7*86400000);
+  }).sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+  document.getElementById('upcomingDeadlines').innerHTML = upcoming.length ?
+    `<table class="data-table">
+      <thead><tr><th>Tarea</th><th>Proyecto</th><th>Vence</th><th>Prioridad</th><th>Estado</th></tr></thead>
+      <tbody>${upcoming.map(t => `
+        <tr onclick="openTaskModal('${t.id}')" style="cursor:pointer;">
+          <td style="font-weight:600;">${escapeHtml(t.title)}</td>
+          <td>${getProjectName(t.projectId) || '<span style="color:var(--text-muted)">Sin proyecto</span>'}</td>
+          <td>${formatDateFull(t.dueDate)}</td>
+          <td><span class="tag tag-${getPriorityTagColor(t.priority)}">${getPriorityLabel(t.priority)}</span></td>
+          <td><span class="tag tag-${getStatusTagColor(t.status)}">${getStatusLabel(t.status)}</span></td>
+        </tr>`).join('')}</tbody>
+    </table>` :
+    '<div class="empty-state"><p>No hay vencimientos en la próxima semana</p></div>';
+}
+
+// ==================== PROJECTS ====================
+
+function renderProjects(filter = 'all') {
+  let projects = [...appData.projects];
+  if (filter === 'active') projects = projects.filter(p => p.status === 'active');
+  else if (filter === 'completed') projects = projects.filter(p => p.status === 'completed');
+  else if (filter === 'archived') projects = projects.filter(p => p.status === 'archived');
+
+  const grid = document.getElementById('projectsGrid');
+  if (!projects.length) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">📁</div><h3>No hay proyectos</h3><p>Crea tu primer proyecto para comenzar a organizar tu trabajo</p><button class="btn btn-primary" onclick="openProjectModal()">+ Crear Proyecto</button></div>';
+    return;
+  }
+
+  grid.innerHTML = projects.map(p => {
+    const tasks = appData.tasks.filter(t => t.projectId === p.id);
+    const done = tasks.filter(t => t.status === 'completed').length;
+    const progress = tasks.length ? Math.round(done / tasks.length * 100) : 0;
+    return `
+      <div class="project-card" ondblclick="openProjectModal('${p.id}')" oncontextmenu="showContext(event,'project','${p.id}')">
+        <div class="project-color-bar" style="background:${p.color || 'var(--accent)'}"></div>
+        <div class="project-card-header">
+          <div>
+            <h3>${escapeHtml(p.name)}</h3>
+            <span class="tag tag-${getStatusTagColor(p.status)}">${getStatusLabel(p.status)}</span>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openProjectModal('${p.id}')">✏️</button>
+        </div>
+        ${p.description ? `<div class="project-desc">${escapeHtml(p.description).substring(0, 120)}${p.description.length > 120 ? '...' : ''}</div>` : ''}
+        <div class="project-progress">
+          <div class="progress-header"><span>${tasks.length} tareas</span><span>${progress}%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${progress}%; background:${p.color || 'var(--accent)'}"></div></div>
+        </div>
+        <div class="project-footer">
+          <div class="project-members">
+            ${p.members ? p.members.map((m,i) => `<div class="member-avatar" style="background:${['#6c5ce7','#00b894','#e17055','#fdcb6e','#74b9ff'][i%5]}">${m.charAt(0).toUpperCase()}</div>`).join('') : ''}
+          </div>
+          ${p.endDate ? `<span class="project-due">📅 ${formatDateShort(p.endDate)}</span>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('projectCount').textContent = appData.projects.length;
+}
+
+function filterProjects(filter, el) {
+  currentFilter.projects = filter;
+  document.querySelectorAll('#page-projects .filter-chip').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderProjects(filter);
+}
+
+function openProjectModal(id = null) {
+  document.getElementById('projectId').value = id || '';
+  document.getElementById('projectName').value = '';
+  document.getElementById('projectDesc').value = '';
+  document.getElementById('projectStatus').value = 'active';
+  document.getElementById('projectPriority').value = 'medium';
+  document.getElementById('projectStartDate').value = '';
+  document.getElementById('projectEndDate').value = '';
+
+  // Reset color selection
+  document.querySelectorAll('#projectModal .color-option').forEach(c => c.classList.remove('selected'));
+  document.querySelector('#projectModal .color-option').classList.add('selected');
+
+  if (id) {
+    const p = appData.projects.find(x => x.id === id);
+    if (p) {
+      document.getElementById('projectModalTitle').textContent = 'Editar Proyecto';
+      document.getElementById('projectId').value = p.id;
+      document.getElementById('projectName').value = p.name;
+      document.getElementById('projectDesc').value = p.description || '';
+      document.getElementById('projectStatus').value = p.status;
+      document.getElementById('projectPriority').value = p.priority;
+      document.getElementById('projectStartDate').value = p.startDate || '';
+      document.getElementById('projectEndDate').value = p.endDate || '';
+      document.querySelectorAll('#projectModal .color-option').forEach(c => {
+        c.classList.toggle('selected', c.dataset.color === (p.color || '#6c5ce7'));
+      });
+    }
+  } else {
+    document.getElementById('projectModalTitle').textContent = 'Nuevo Proyecto';
+  }
+
+  // Populate project select for quick add
+  populateProjectSelects();
+  openModal('projectModal');
+}
+
+function saveProject() {
+  const name = document.getElementById('projectName').value.trim();
+  if (!name) { showToast('El nombre es obligatorio', 'error'); return; }
+
+  const id = document.getElementById('projectId').value;
+  const colorEl = document.querySelector('#projectModal .color-option.selected');
+
+  const data = {
+    name,
+    description: document.getElementById('projectDesc').value.trim(),
+    status: document.getElementById('projectStatus').value,
+    priority: document.getElementById('projectPriority').value,
+    startDate: document.getElementById('projectStartDate').value,
+    endDate: document.getElementById('projectEndDate').value,
+    color: colorEl ? colorEl.dataset.color : '#6c5ce7',
+    members: (document.getElementById('projectMembers')?.value || '').split(',').map(m => m.trim()).filter(Boolean)
+  };
+
+  if (id) {
+    const idx = appData.projects.findIndex(p => p.id === id);
+    if (idx >= 0) { appData.projects[idx] = { ...appData.projects[idx], ...data }; }
+    addActivity(`✏️ <strong>"${name}"</strong> fue editado`);
+    showToast('Proyecto actualizado');
+  } else {
+    data.id = generateId();
+    data.createdAt = new Date().toISOString();
+    appData.projects.push(data);
+    addActivity(`📁 <strong>"${name}"</strong> fue creado`);
+    showToast('Proyecto creado exitosamente');
+  }
+
+  saveData();
+  closeModal('projectModal');
+  renderProjects(currentFilter.projects);
+}
+
+function deleteCurrentProject() {
+  const id = document.getElementById('projectDetailId')?.value;
+  if (!id) return;
+  if (confirm('¿Estás seguro? Se eliminará el proyecto y todas sus tareas asociadas.')) {
+    const p = appData.projects.find(x => x.id === id);
+    appData.projects = appData.projects.filter(x => x.id !== id);
+    appData.tasks = appData.tasks.filter(t => t.projectId !== id);
+    addActivity(`🗑️ <strong>"${p?.name || 'proyecto'}"</strong> fue eliminado`);
+    saveData();
+    showToast('Proyecto eliminado');
+    navigateTo('projects');
+  }
+}
+
+// ==================== TASKS ====================
+
+function renderTasks() {
+  document.getElementById('taskCount').textContent = appData.tasks.length;
+  renderTaskList();
+  populateProjectSelects();
+}
+
+function switchTaskView(view, el) {
+  document.querySelectorAll('#page-tasks .tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('taskListView').style.display = view === 'list' ? 'block' : 'none';
+  document.getElementById('taskKanbanView').style.display = view === 'kanban' ? 'block' : 'none';
+  if (view === 'kanban') renderTaskKanban();
+}
+
+function renderTaskList(filter = null) {
+  const f = filter || currentFilter.tasks;
+  let tasks = [...appData.tasks];
+
+  if (f === 'pending') tasks = tasks.filter(t => t.status !== 'completed');
+  else if (f === 'in-progress') tasks = tasks.filter(t => t.status === 'in-progress');
+  else if (f === 'completed') tasks = tasks.filter(t => t.status === 'completed');
+  else if (f === 'overdue') {
+    const now = new Date();
+    tasks = tasks.filter(t => {
+      if (t.status === 'completed') return false;
+      return t.dueDate && new Date(t.dueDate) < now;
+    });
+  }
+
+  const prioOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+  tasks.sort((a,b) => (prioOrder[a.priority]||2) - (prioOrder[b.priority]||2));
+
+  const container = document.getElementById('tasksList');
+  if (!tasks.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><h3>No hay tareas</h3><p>Crea una tarea o usa la captura rápida</p><button class="btn btn-primary" onclick="openTaskModal()">+ Nueva Tarea</button></div>';
+    return;
+  }
+
+  container.innerHTML = `<table class="data-table">
+    <thead><tr><th style="width:40px;"></th><th>Tarea</th><th>Estado</th><th>Prioridad</th><th>Proyecto</th><th>Vencimiento</th><th>Acciones</th></tr></thead>
+    <tbody>${tasks.map(t => `
+      <tr oncontextmenu="showContext(event,'task','${t.id}')">
+        <td><input type="checkbox" ${t.status === 'completed' ? 'checked' : ''} onchange="toggleTaskStatus('${t.id}', this)" style="width:18px;height:18px;accent-color:var(--success);cursor:pointer;"></td>
+        <td>
+          <div style="font-weight:${t.priority === 'urgent' ? 700 : 500}">${escapeHtml(t.title)}</div>
+          ${t.description ? `<div style="font-size:12px;color:var(--text-muted);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(t.description)}</div>` : ''}
+        </td>
+        <td><span class="tag tag-${getStatusTagColor(t.status)}">${getStatusLabel(t.status)}</span></td>
+        <td><span class="priority-dot" style="background:${getPriorityColor(t.priority)};display:inline-block;width:12px;height:12px;"></span> ${getPriorityLabel(t.priority)}</td>
+        <td>${getProjectName(t.projectId) || '<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>${t.dueDate ? formatDateFull(t.dueDate) : '<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openTaskModal('${t.id}')" title="Editar">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); deleteTask('${t.id}')" title="Eliminar" style="color:var(--danger);">🗑️</button>
+        </td>
+      </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function filterTasks(filter, el) {
+  currentFilter.tasks = filter;
+  document.querySelectorAll('#page-tasks .filter-chip').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderTaskList(filter);
+}
+
+function renderTaskKanban() {
+  const columns = [
+    { id: 'pending', label: '⏳ Pendientes', color: '#fdcb6e' },
+    { id: 'in-progress', label: '🔄 En Progreso', color: '#74b9ff' },
+    { id: 'completed', label: '✅ Completadas', color: '#00b894' }
+  ];
+
+  const board = document.getElementById('taskKanbanBoard');
+  board.innerHTML = columns.map(col => {
+    const tasks = appData.tasks.filter(t => t.status === col.id);
+    return `
+      <div class="kanban-column" ondragover="event.preventDefault(); this.querySelector('.kanban-body').classList.add('drag-over')" ondragleave="this.querySelector('.kanban-body').classList.remove('drag-over')" ondrop="handleKanbanDrop(event, '${col.id}', this)">
+        <div class="kanban-header">
+          <h3>${col.label} <span class="kanban-count">${tasks.length}</span></h3>
+          <button class="btn btn-ghost btn-sm" onclick="openTaskModal()" title="Agregar tarea">+</button>
+        </div>
+        <div class="kanban-body">
+          ${tasks.map(t => `
+            <div class="kanban-card" draggable="true" ondragstart="handleDragStart(event, '${t.id}')" oncontextmenu="showContext(event,'task','${t.id}')">
+              <div class="card-title">${escapeHtml(t.title)}</div>
+              ${t.description ? `<div class="card-desc">${escapeHtml(t.description).substring(0, 80)}${t.description.length > 80 ? '...' : ''}</div>` : ''}
+              <div class="card-tags">
+                ${t.priority && t.priority !== 'low' ? `<span class="tag tag-${getPriorityTagColor(t.priority)}" style="font-size:10px;">${getPriorityLabel(t.priority)}</span>` : ''}
+                <span class="tag tag-blue" style="font-size:10px;">📎 ${getProjectName(t.projectId) || 'Sin proy.'}</span>
+              </div>
+              <div class="card-footer">
+                <span>${t.dueDate ? '📅 ' + formatDateShort(t.dueDate) : ''}</span>
+                <button class="btn btn-ghost" style="padding:2px;font-size:14px;" onclick="openTaskModal('${t.id}')">✏️</button>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function handleDragStart(e, taskId) {
+  e.dataTransfer.setData('text/plain', taskId);
+  e.target.classList.add('dragging');
+}
+
+function handleKanbanDrop(e, status, column) {
+  e.preventDefault();
+  column.querySelector('.kanban-body').classList.remove('drag-over');
+  const taskId = e.dataTransfer.getData('text/plain');
+  const task = appData.tasks.find(t => t.id === taskId);
+  if (task && task.status !== status) {
+    const oldStatus = getStatusLabel(task.status);
+    task.status = status;
+    addActivity(`🔄 <strong>"${task.title}"</strong> → ${getStatusLabel(status)}`);
+    saveData();
+    showToast(`Tarea movida a ${getStatusLabel(status)}`, 'info');
+    renderPage(currentPage);
+  }
+}
+
+function openTaskModal(id = null) {
+  document.getElementById('taskId').value = id || '';
+  document.getElementById('taskTitle').value = '';
+  document.getElementById('taskDesc').value = '';
+  document.getElementById('taskPriority').value = 'medium';
+  document.getElementById('taskStatus').value = 'pending';
+  document.getElementById('taskStartDate').value = '';
+  document.getElementById('taskDueDate').value = '';
+  document.getElementById('taskProject').value = '';
+  document.getElementById('taskCategory').value = '';
+  document.getElementById('subtasksContainer').innerHTML = '';
+  document.getElementById('deleteTaskBtn').style.display = 'none';
+
+  if (id) {
+    const t = appData.tasks.find(x => x.id === id);
+    if (t) {
+      document.getElementById('taskModalTitle').textContent = 'Editar Tarea';
+      document.getElementById('taskId').value = t.id;
+      document.getElementById('taskTitle').value = t.title;
+      document.getElementById('taskDesc').value = t.description || '';
+      document.getElementById('taskPriority').value = t.priority;
+      document.getElementById('taskStatus').value = t.status;
+      document.getElementById('taskStartDate').value = t.startDate || '';
+      document.getElementById('taskDueDate').value = t.dueDate || '';
+      document.getElementById('taskProject').value = t.projectId || '';
+      document.getElementById('taskCategory').value = t.category || '';
+      document.getElementById('deleteTaskBtn').style.display = 'inline-flex';
+
+      if (t.subtasks?.length) {
+        t.subtasks.forEach(st => addSubtaskField(st));
+      }
+    }
+  } else {
+    document.getElementById('taskModalTitle').textContent = 'Nueva Tarea';
+  }
+
+  populateProjectSelects();
+  openModal('taskModal');
+}
+
+function saveTask() {
+  const title = document.getElementById('taskTitle').value.trim();
+  if (!title) { showToast('El título es obligatorio', 'error'); return; }
+
+  const id = document.getElementById('taskId').value;
+  const subtasks = [];
+  document.querySelectorAll('.subtask-field').forEach(field => {
+    if (field.value.trim()) subtasks.push({ id: generateId(), text: field.value.trim(), done: false });
+  });
+
+  const data = {
+    title,
+    description: document.getElementById('taskDesc').value.trim(),
+    priority: document.getElementById('taskPriority').value,
+    status: document.getElementById('taskStatus').value,
+    startDate: document.getElementById('taskStartDate').value,
+    dueDate: document.getElementById('taskDueDate').value,
+    projectId: document.getElementById('taskProject').value,
+    category: document.getElementById('taskCategory').value,
+    subtasks
+  };
+
+  if (id) {
+    const idx = appData.tasks.findIndex(t => t.id === id);
+    if (idx >= 0) appData.tasks[idx] = { ...appData.tasks[idx], ...data };
+    addActivity(`✏️ <strong>"${title}"</strong> fue editada`);
+    showToast('Tarea actualizada');
+  } else {
+    data.id = generateId();
+    data.createdAt = new Date().toISOString();
+    appData.tasks.push(data);
+    addActivity(`✅ <strong>"${title}"</strong> fue creada`);
+    showToast('Tarea creada exitosamente');
+  }
+
+  saveData();
+  closeModal('taskModal');
+  renderPage(currentPage);
+}
+
+function toggleTaskStatus(id, el) {
+  const task = appData.tasks.find(t => t.id === id);
+  if (!task) return;
+  task.status = task.status === 'completed' ? 'pending' : 'completed';
+  addActivity(`${task.status === 'completed' ? '✅' : '⏳'} <strong>"${task.title}"</strong> → ${getStatusLabel(task.status)}`);
+  saveData();
+  renderPage(currentPage);
+}
+
+function deleteTask(id) {
+  const task = appData.tasks.find(t => t.id === id);
+  if (!task) return;
+  if (confirm(`¿Eliminar "${task.title}"?`)) {
+    appData.tasks = appData.tasks.filter(t => t.id !== id);
+    addActivity(`🗑️ <strong>"${task.title}"</strong> fue eliminada`);
+    saveData();
+    showToast('Tarea eliminada');
+    renderPage(currentPage);
+  }
+}
+
+function deleteCurrentTask() {
+  const id = document.getElementById('taskId').value;
+  if (id) deleteTask(id);
+}
+
+function addSubtaskField(text = '') {
+  const container = document.getElementById('subtasksContainer');
+  const div = document.createElement('div');
+  div.style.display = 'flex'; div.style.gap = '6px'; div.style.marginTop = '4px';
+  div.innerHTML = `
+    <input type="text" class="form-control subtask-field" placeholder="Subtarea..." value="${escapeHtml(text)}" style="font-size:13px;">
+    <button class="btn btn-ghost btn-sm" onclick="this.parentElement.remove()" style="color:var(--danger);">✕</button>`;
+  container.appendChild(div);
+}
+
+// ==================== KANBAN BOARD (GLOBAL) ====================
+
+function renderKanbanBoard() {
+  renderTaskKanban();
+}
+
+// ==================== NOTES ====================
+
+function renderNotes(filter = null) {
+  const f = filter || currentFilter.notes;
+  let notes = [...appData.notes];
+
+  if (f !== 'all') {
+    if (f === 'important') notes = notes.filter(n => n.category === 'important');
+    else notes = notes.filter(n => n.category === f);
+  }
+
+  notes.sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+
+  const grid = document.getElementById('notesGrid');
+  if (!notes.length) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">📝</div><h3>No hay notas</h3><p>Captura tus ideas al instante</p><button class="btn btn-primary" onclick="openNoteModal()">+ Nueva Nota</button></div>';
+    return;
+  }
+
+  grid.innerHTML = notes.map(n => {
+    const cleanContent = n.content.replace(/<[^>]*>/g, '').substring(0, 150);
+    return `
+      <div class="note-card" ondblclick="openNoteModal('${n.id}')" oncontextmenu="showContext(event,'note','${n.id}')">
+        <div class="note-color-strip" style="background:${n.color || 'var(--accent)'}"></div>
+        <div class="note-content">
+          <h4>${escapeHtml(n.title || 'Sin título')}</h4>
+          <p>${escapeHtml(cleanContent)}${n.content.replace(/<[^>]*>/g, '').length > 150 ? '...' : ''}</p>
+          <div class="note-meta">
+            <span class="tag tag-${getNoteCategoryColor(n.category)}">${getNoteCategoryLabel(n.category)}</span>
+            <span>${formatDateShort(n.updatedAt || n.createdAt)}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('noteCount').textContent = appData.notes.length;
+}
+
+function filterNotes(filter, el) {
+  currentFilter.notes = filter;
+  document.querySelectorAll('#page-notes .filter-chip').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderNotes(filter);
+}
+
+function openNoteModal(id = null) {
+  document.getElementById('noteId').value = id || '';
+  document.getElementById('noteTitle').value = '';
+  document.getElementById('noteContent').value = '';
+  document.getElementById('noteCategory').value = 'personal';
+  document.getElementById('deleteNoteBtn').style.display = 'none';
+
+  if (id) {
+    const n = appData.notes.find(x => x.id === id);
+    if (n) {
+      document.getElementById('noteModalTitle').textContent = 'Editar Nota';
+      document.getElementById('noteId').value = n.id;
+      document.getElementById('noteTitle').value = n.title || '';
+      document.getElementById('noteContent').value = n.content || '';
+      document.getElementById('noteCategory').value = n.category;
+      document.getElementById('deleteNoteBtn').style.display = 'inline-flex';
+      document.querySelectorAll('#noteModal .color-option').forEach(c => {
+        c.classList.toggle('selected', c.dataset.color === (n.color || '#6c5ce7'));
+      });
+    }
+  } else {
+    document.getElementById('noteModalTitle').textContent = 'Nueva Nota';
+  }
+
+  openModal('noteModal');
+}
+
+function saveNote() {
+  const title = document.getElementById('noteTitle').value.trim();
+  const content = document.getElementById('noteContent').value.trim();
+  if (!title && !content) { showToast('Escribe algo en la nota', 'error'); return; }
+
+  const id = document.getElementById('noteId').value;
+  const colorEl = document.querySelector('#noteModal .color-option.selected');
+
+  const data = {
+    title: title || 'Sin título',
+    content,
+    category: document.getElementById('noteCategory').value,
+    color: colorEl ? colorEl.dataset.color : '#6c5ce7'
+  };
+
+  if (id) {
+    const idx = appData.notes.findIndex(n => n.id === id);
+    if (idx >= 0) { data.id = id; data.createdAt = appData.notes[idx].createdAt; }
+    appData.notes[idx >= 0 ? idx : -1] = data;
+    addActivity(`📝 <strong>"${data.title}"</strong> fue editada`);
+    showToast('Nota actualizada');
+  } else {
+    data.id = generateId();
+    data.createdAt = new Date().toISOString();
+    appData.notes.push(data);
+    addActivity(`📝 <strong>"${data.title}"</strong> fue creada`);
+    showToast('Nota creada exitosamente');
+  }
+
+  saveData();
+  closeModal('noteModal');
+  renderNotes(currentFilter.notes);
+}
+
+function deleteCurrentNote() {
+  const id = document.getElementById('noteId').value;
+  if (id) {
+    const note = appData.notes.find(n => n.id === id);
+    if (note && confirm(`¿Eliminar "${note.title}"?`)) {
+      appData.notes = appData.notes.filter(n => n.id !== id);
+      addActivity(`🗑️ <strong>"${note.title}"</strong> fue eliminada`);
+      saveData();
+      showToast('Nota eliminada');
+      closeModal('noteModal');
+      renderNotes(currentFilter.notes);
+    }
+  }
+}
+
+// ==================== CALENDAR ====================
+
+function renderCalendar() {
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
+  const today = new Date();
+
+  document.getElementById('calendarMonthTitle').textContent =
+    new Date(year, month).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const startDay = firstDay === 0 ? 6 : firstDay - 1; // Monday start
+
+  const grid = document.getElementById('calendarGrid');
+  let html = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => `<div class="calendar-header-cell">${d}</div>`).join('');
+
+  // Previous month days
+  for (let i = startDay - 1; i >= 0; i--) {
+    html += `<div class="calendar-cell other-month"><div class="calendar-date">${daysInPrevMonth - i}</div></div>`;
+  }
+
+  // Current month days
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+    const dayTasks = appData.tasks.filter(t => t.dueDate === dateStr);
+    const dayProjects = appData.projects.filter(p => p.endDate === dateStr);
+
+    html += `<div class="calendar-cell ${isToday ? 'today' : ''}" ondblclick="openQuickAddWithDate('${dateStr}')">
+      <div class="calendar-date">${day}</div>
+      ${dayTasks.map(t => `<div class="calendar-event" style="background:${getPriorityColor(t.priority)}22; color:${getPriorityColor(t.priority)};" onclick="event.stopPropagation(); openTaskModal('${t.id}')" title="${escapeHtml(t.title)}">• ${escapeHtml(t.title)}</div>`).join('')}
+      ${dayProjects.map(p => `<div class="calendar-event" style="background:rgba(108,92,231,0.15); color:var(--accent-light);" onclick="event.stopPropagation(); openProjectModal('${p.id}')" title="${escapeHtml(p.name)}">📁 ${escapeHtml(p.name)}</div>`).join('')}
+    </div>`;
+  }
+
+  // Next month days
+  const totalCells = startDay + daysInMonth;
+  const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (let i = 1; i <= remaining; i++) {
+    html += `<div class="calendar-cell other-month"><div class="calendar-date">${i}</div></div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+function changeMonth(delta) {
+  calendarDate.setMonth(calendarDate.getMonth() + delta);
+  renderCalendar();
+}
+
+// ==================== INBOX ====================
+
+function renderInbox() {
+  const inbox = appData.inbox || [];
+  document.getElementById('inboxCount').textContent = inbox.length;
+  const container = document.getElementById('inboxList');
+
+  if (!inbox.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">📥</div><h3>Bandeja vacía</h3><p>Usa la captura rápida (⚡ + Rápido) para agregar items aquí</p></div>';
+    return;
+  }
+
+  container.innerHTML = inbox.map(item => `
+    <div class="task-item" oncontextmenu="showContext(event,'inbox-item','${item.id}')" style="margin-bottom:8px;">
+      <span style="font-size:18px;">${item.type === 'note' ? '📝' : item.type === 'project' ? '📁' : '✅'}</span>
+      <span class="task-text">${escapeHtml(item.text)}</span>
+      <span class="tag tag-${getPriorityTagColor(item.priority)}">${getPriorityLabel(item.priority)}</span>
+      <button class="btn btn-sm btn-success" onclick="processInboxItem('${item.id}')">📦 Procesar</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteInboxItem('${item.id}')">✕</button>
+    </div>
+  `).join('');
+}
+
+function processInboxItem(id) {
+  const item = appData.inbox.find(x => x.id === id);
+  if (!item) return;
+  if (item.type === 'note') {
+    appData.notes.push({ ...item, category: 'personal' });
+  } else if (item.type === 'task') {
+    appData.tasks.push({ ...item, status: 'pending', subtasks: [] });
+  }
+  appData.inbox = appData.inbox.filter(x => x.id !== id);
+  saveData();
+  showToast('Item procesado exitosamente');
+  renderInbox();
+}
+
+function deleteInboxItem(id) {
+  appData.inbox = appData.inbox.filter(x => x.id !== id);
+  saveData();
+  renderInbox();
+}
+
+// ==================== QUICK ADD ====================
+
+function openQuickAddModal() {
+  document.getElementById('quickAddText').value = '';
+  document.getElementById('quickAddType').value = 'task';
+  document.getElementById('quickAddPriority').value = 'medium';
+  document.getElementById('quickAddDate').value = '';
+  populateProjectSelects();
+  openModal('quickAddModal');
+  setTimeout(() => document.getElementById('quickAddText').focus(), 100);
+}
+
+function submitQuickAdd() {
+  const text = document.getElementById('quickAddText').value.trim();
+  if (!text) { showToast('Escribe algo primero', 'error'); return; }
+
+  const type = document.getElementById('quickAddType').value;
+  const priority = document.getElementById('quickAddPriority').value;
+  const projectId = document.getElementById('quickAddProject').value;
+  const dueDate = document.getElementById('quickAddDate').value;
+  const id = generateId();
+
+  if (type === 'task') {
+    appData.tasks.push({
+      id, title: text, description: '', priority, status: 'pending',
+      startDate: '', dueDate, projectId, category: '', subtasks: [],
+      createdAt: new Date().toISOString()
+    });
+    addActivity(`✅ <strong>"${text}"</strong> capturada rápidamente`);
+  } else if (type === 'note') {
+    appData.notes.push({
+      id, title: text.substring(0, 50), content: text, category: 'ideas',
+      color: '#6c5ce7', createdAt: new Date().toISOString()
+    });
+    addActivity(`📝 <strong>"${text}"</strong> capturada como nota`);
+  } else {
+    (appData.inbox || (appData.inbox = [])).push({ id, text, type, priority, createdAt: new Date().toISOString() });
+    addActivity(`📥 <strong>"${text}"</strong> en bandeja de entrada`);
+  }
+
+  saveData();
+  closeModal('quickAddModal');
+  showToast('¡Capturado! ⚡', 'success');
+  updateBadges();
+}
+
+function openQuickAddWithDate(dateStr) {
+  document.getElementById('quickAddText').value = '';
+  document.getElementById('quickAddType').value = 'task';
+  document.getElementById('quickAddPriority').value = 'medium';
+  document.getElementById('quickAddDate').value = dateStr;
+  openModal('quickAddModal');
+}
+
+// ==================== GLOBAL SEARCH ====================
+
+function handleGlobalSearch(query) {
+  const results = document.getElementById('searchResults');
+  if (!query.trim()) { results.classList.remove('active'); return; }
+
+  const q = query.toLowerCase();
+  let items = [];
+
+  appData.tasks.forEach(t => {
+    if (t.title.toLowerCase().includes(q)) items.push({ type: 'task', label: t.title, icon: '✅', sublabel: getProjectName(t.projectId), action: `openTaskModal('${t.id}');` });
+  });
+
+  appData.projects.forEach(p => {
+    if (p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q)) items.push({ type: 'project', label: p.name, icon: '📁', sublabel: getStatusLabel(p.status), action: `openProjectModal('${p.id}');` });
+  });
+
+  appData.notes.forEach(n => {
+    if (n.title.toLowerCase().includes(q) || (n.content || '').toLowerCase().includes(q)) items.push({ type: 'note', label: n.title, icon: '📝', sublabel: getNoteCategoryLabel(n.category), action: `openNoteModal('${n.id}');` });
+  });
+
+  if (!items.length) {
+    results.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:13px;text-align:center;">No se encontraron resultados</div>';
+  } else {
+    results.innerHTML = items.slice(0, 12).map(i => `
+      <div class="context-menu-item" onclick="${i.action} document.getElementById('searchResults').classList.remove('active'); document.getElementById('globalSearch').value='';">
+        <span>${i.icon}</span>
+        <div><div style="font-weight:600;font-size:13px;">${escapeHtml(i.label)}</div><div style="font-size:11px;color:var(--text-muted);">${i.sublabel}</div></div>
+      </div>`).join('');
+  }
+
+  results.classList.add('active');
+}
+
+document.getElementById('globalSearch').addEventListener('blur', () => {
+  setTimeout(() => document.getElementById('searchResults').classList.remove('active'), 200);
+});
+
+// ==================== CONTEXT MENU ====================
+
+function showContext(e, type, id) {
+  e.preventDefault();
+  contextType = type;
+  contextTarget = id;
+
+  const menu = document.getElementById('contextMenu');
+  menu.style.display = 'block';
+  menu.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px';
+  menu.style.top = Math.min(e.clientY, window.innerHeight - 250) + 'px';
+}
+
+function hideContextMenu() { document.getElementById('contextMenu').style.display = 'none'; }
+
+document.addEventListener('click', hideContextMenu);
+
+function contextEdit() {
+  hideContextMenu();
+  if (contextType === 'task') openTaskModal(contextTarget);
+  else if (contextType === 'project') openProjectModal(contextTarget);
+  else if (contextType === 'note') openNoteModal(contextTarget);
+}
+
+function contextDuplicate() {
+  hideContextMenu();
+  showToast('Duplicado', 'info');
+  // Simplified duplication
+}
+
+function contextMoveToInbox() {
+  hideContextMenu();
+  showToast('Movido a bandeja de entrada', 'info');
+}
+
+function contextChangeStatus() {
+  hideContextMenu();
+  if (contextType === 'task') openTaskModal(contextTarget);
+}
+
+function contextDelete() {
+  hideContextMenu();
+  if (contextType === 'task') deleteTask(contextTarget);
+  else if (contextType === 'project') {
+    const p = appData.projects.find(x => x.id === contextTarget);
+    if (p && confirm(`¿Eliminar "${p.name}"?`)) {
+      appData.projects = appData.projects.filter(x => x.id !== contextTarget);
+      saveData();
+      showToast('Proyecto eliminado');
+    }
+  }
+}
+
+// ==================== COLOR HELPERS ====================
+
+function selectColor(el) {
+  el.closest('.color-options').querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function selectNoteColor(el) {
+  el.closest('.color-options').querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ==================== POPULATE SELECTS ====================
+
+function populateProjectSelects() {
+  const selects = ['quickAddProject', 'taskProject'];
+  selects.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">-- Sin proyecto --</option>';
+    appData.projects.filter(p => p.status !== 'archived').forEach(p => {
+      sel.innerHTML += `<option value="${p.id}">${escapeHtml(p.name)}</option>`;
+    });
+    sel.value = current;
+  });
+}
+
+// ==================== EXPORT ====================
+
+function exportAllData() {
+  const dataStr = JSON.stringify(appData, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `taskflow_backup_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Datos exportados correctamente', 'success');
+}
+
+// ==================== UPDATE BADGES ====================
+
+function updateBadges() {
+  document.getElementById('projectCount').textContent = appData.projects.length;
+  document.getElementById('taskCount').textContent = appData.tasks.filter(t => t.status !== 'completed').length;
+  document.getElementById('noteCount').textContent = appData.notes.length;
+  document.getElementById('inboxCount').textContent = (appData.inbox || []).length;
+}
+
+// ==================== HELPER FUNCTIONS ====================
+
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function getPriorityColor(p) {
+  return { low: '#00b894', medium: '#fdcb6e', high: '#e17055', urgent: '#d63031' }[p] || '#6c666';
+}
+
+function getPriorityLabel(p) {
+  return { low: 'Baja', medium: 'Media', high: 'Alta', urgent: 'Urgente' }[p] || p;
+}
+
+function getPriorityTagColor(p) {
+  return { low: 'green', medium: 'yellow', high: 'orange', urgent: 'purple' }[p] || 'gray';
+}
+
+function getStatusLabel(s) {
+  return { pending: '⏳ Pendiente', 'in-progress': '🔄 En Progreso', completed: '✅ Completada', active: '🟢 Activo', paused: '🟡 Pausado', archived: '📦 Archivado' }[s] || s;
+}
+
+function getStatusTagColor(s) {
+  return { pending: 'yellow', 'in-progress': 'blue', completed: 'green', active: 'green', paused: 'yellow', archived: 'gray' }[s] || 'gray';
+}
+
+function getNoteCategoryColor(c) {
+  return { personal: 'purple', work: 'blue', ideas: 'yellow', important: 'orange' }[c] || 'gray';
+}
+
+function getNoteCategoryLabel(c) {
+  return { personal: 'Personal', work: 'Trabajo', ideas: 'Ideas', important: 'Importante' }[c] || c;
+}
+
+function getProjectName(id) {
+  const p = appData.projects.find(x => x.id === id);
+  return p ? escapeHtml(p.name) : null;
+}
+
+function formatDateShort(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+}
+
+function formatDateFull(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Ahora mismo';
+  if (mins < 60) return `Hace ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `Hace ${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `Hace ${days}d`;
+  return formatDateShort(dateStr);
+}
+
+// ==================== KEYBOARD SHORTCUTS ====================
+
+document.addEventListener('keydown', e => {
+  // Ctrl+N or Cmd+N = Quick Add
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); openQuickAddModal(); }
+  // Escape = Close modals
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+    hideContextMenu();
+  }
+  // Ctrl+/ = Focus search
+  if ((e.ctrlKey || e.metaKey) && e.key === '/') { e.preventDefault(); document.getElementById('globalSearch').focus(); }
+});
+
+// Enter to submit in quick add
+document.getElementById('quickAddText').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitQuickAdd();
+});
+
+// ==================== INIT ====================
+
+function init() {
+  updateBadges();
+  updateStorageIndicator();
+  renderDashboard();
+
+  // Add sample data if empty (first visit)
+  if (!appData.projects.length && !appData.tasks.length) {
+    const wipId = generateId();
+    appData.projects.push(
+      { id: 'demo-project-1', name: '🚀 Proyecto Principal', description: 'Tu proyecto principal donde se centraliza gran parte del trabajo', status: 'active', priority: 'high', color: '#6c5ce7', startDate: new Date().toISOString().split('T')[0], endDate: '', members: ['A'], createdAt: new Date().toISOString() },
+      { id: 'demo-project-2', name: '📱 App Móvil', description: 'Desarrollo de la aplicación para dispositivos móviles', status: 'active', priority: 'medium', color: '#00b894', startDate: '', endDate: new Date(Date.now() + 30*864e5).toISOString().split('T')[0], members: [], createdAt: new Date().toISOString() },
+      { id: 'demo-project-3', name: '🎨 Rediseño Web', description: 'Modernizar el diseño de la página web principal', status: 'paused', priority: 'low', color: '#e17055', startDate: '', endDate: '', members: ['M'], createdAt: new Date().toISOString() }
+    );
+
+    appData.tasks.push(
+      { id: generateId(), title: 'Definir arquitectura del sistema', description: 'Documentar y definir la estructura técnica', priority: 'high', status: 'completed', projectId: 'demo-project-1', category: 'dev', startDate: '', dueDate: new Date(Date.now() - 864e5).toISOString().split('T')[0], subtasks: [{ id: generateId(), text: 'Investigar tecnologías', done: true }, { id: generateId(), text: 'Escribir documentación', done: true }], createdAt: new Date().toISOString() },
+      { id: generateId(), title: 'Diseñar wireframes de la app', description: 'Crear prototipos de baja fidelidad', priority: 'high', status: 'in-progress', projectId: 'demo-project-2', category: 'design', dueDate: new Date(Date.now() + 7*864e5).toISOString().split('T')[0], subtasks: [], createdAt: new Date().toISOString() },
+      { id: generateId(), title: 'Configurar base de datos', description: 'Setup inicial de PostgreSQL', priority: 'medium', status: 'pending', projectId: 'demo-project-1', category: 'dev', dueDate: new Date(Date.now() + 14*864e5).toISOString().split('T')[0], subtasks: [], createdAt: new Date().toISOString() },
+      { id: generateId(), title: 'Implementar autenticación', description: 'Login con OAuth2 y JWT', priority: 'urgent', status: 'pending', projectId: 'demo-project-1', category: 'dev', dueDate: new Date(Date.now() + 5*864e5).toISOString().split('T')[0], subtasks: [], createdAt: new Date().toISOString() },
+      { id: generateId(), title: 'Escribir documentación API', description: 'Documentación con Swagger/Redoc', priority: 'low', status: 'pending', projectId: '', category: 'admin', dueDate: new Date(Date.now() + 21*864e5).toISOString().split('T')[0], subtasks: [], createdAt: new Date().toISOString() }
+    );
+
+    appData.notes.push(
+      { id: generateId(), title: '💡 Ideas para el futuro', content: '• Implementar modo oscuro completo\n• Agregar integración con Google Calendar\n• Sistema de etiquetas avanzado\n• Exportación a PDF\n• Colaboración en tiempo real', category: 'ideas', color: '#fdcb6e', createdAt: new Date().toISOString() },
+      { id: generateId(), title: '📋 Lista de compras', content: '- Laptop nueva\n- Monitor 27"\n- Teclado mecánico\n- Mouse ergonómico\n- Escritorio ajustable', category: 'personal', color: '#00b894', createdAt: new Date().toISOString() }
+    );
+
+    addActivity('🎉 <strong>Bienvenido a TaskFlow Pro!</strong> - App inicializada con datos de ejemplo');
+    saveData();
+    updateBadges();
+    renderDashboard();
+  }
+}
+
+init();
+</script>
 </body>
 </html>
