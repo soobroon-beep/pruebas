@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Livro de Ideas</title>
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --secondary: #a29bfe;
+            --bg: #f4f4f9;
+            --card-bg: #ffffff;
+            --text: #2d3436;
+            --danger: #ff7675;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 { font-size: 2rem; margin-bottom: 5px; color: var(--primary); }
+        
+        .subtitle { 
+            font-size: 0.9rem; 
+            color: #636e72; 
+            display: block;
+            margin-top: 5px;
+        }
+
+        /* Formulario de entrada */
+        .input-group {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 80px;
+            padding: 10px;
+            border: 2px solid #dfe6e9;
+            border-radius: 8px;
+            resize: none;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus { border-color: var(--primary); }
+
+        /* Ocultar botón visual, usar teclado */
+        .visual-btn { display: none; }
+
+        /* Listado de ideas */
+        #ideas-list { list-style: none; display: flex; flex-direction: column; gap: 15px; }
+
+        .idea-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: relative;
+            animation: fadeIn 0.3s ease-in-out;
+            word-wrap: break-word;
+        }
+
+        .idea-date {
+            display: block;
+            font-size: 0.75rem;
+            color: #b2bec3;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 118, 117, 0.1);
+            color: var(--danger);
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .delete-btn:hover { background: rgba(255, 118, 117, 0.2); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #b2bec3;
+            margin-top: 50px;
+            font-style: italic;
+        }
+        
+        /* Footer simple */
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #b2bec3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>🧠 Mis Ideas</h1>
+            <span class="subtitle">Presiona "Enter" para guardar.</span>
+        </header>
+
+        <!-- Área de Entrada -->
+        <div class="input-group">
+            <textarea 
+                id="idea-input" 
+                placeholder="¡Pienso que debería mejorar mi aplicación web con un modo oscuro..."
+                onkeydown="checkEnter(event)"></textarea>
+            
+            <!-- Botón visual oculto para accesibilidad o móviles, aunque Enter funciona -->
+            <button class="visual-btn" onclick="addIdea()">Guardar</button>
+        </div>
+
+        <!-- Lista donde aparecen las ideas -->
+        <ul id="ideas-list">
+            <!-- Las ideas se inyectan aquí con JS -->
+        </ul>
+        
+        <footer>
+            Tus datos están seguros en tu navegador. Se eliminan al limpiar caché.
+        </footer>
+    </div>
+
+    <script>
+        // 1. Obtener elementos del DOM
+        const inputArea = document.getElementById('idea-input');
+        const listContainer = document.getElementById('ideas-list');
+
+        // 2. Cargar ideas guardadas al iniciar la página
+        document.addEventListener('DOMContentLoaded', loadIdeas);
+
+        // 3. Función para guardar nueva idea
+        function addIdea() {
+            const text = inputArea.value.trim();
+            
+            if (text !== "") {
+                // Crear objeto idea
+                const newIdea = {
+                    id: Date.now(), // ID único basado en la fecha actual
+                    text: text,
+                    date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                };
+
+                // Guardar en LocalStorage (Base de datos del navegador)
+                saveToLocalStorage(newIdea);
+
+                // Limpiar input y actualizar vista
+                inputArea.value = '';
+                createCard(newIdea); 
+            }
+        }
+
+        // 4. Detectar tecla Enter
+        function checkEnter(event) {
+            if (event.key === 'Enter') {
+                addIdea();
+            }
+        }
+
+        // 5. Crear el HTML de la tarjeta en la pantalla
+        function createCard(idea) {
+            const li = document.createElement('li');
+            li.className = 'idea-card';
+            li.innerHTML = `
+                <span class="idea-date">${idea.date}</span>
+                ${escapeHtml(idea.text)} 
+                <button class="delete-btn" onclick="deleteIdea(${idea.id})">×</button>
+            `;
+
+            // Insertar al principio de la lista
+            listContainer.prepend(li);
+        }
+
+        // 6. Cargar ideas existentes desde el almacenamiento
+        function loadIdeas() {
+            const storedIdeas = JSON.parse(localStorage.getItem('myIdeas')) || [];
+            
+            if(storedIdeas.length > 0) {
+                // Renderizar al revés para que las más viejas vayan abajo (opcional)
+                // o dejarlas tal cual salieron. Aquí las dejo en orden natural de ingreso.
+                storedIdeas.forEach(idea => createCard(idea));
+            } else {
+                const empty = document.createElement('li');
+                empty.className = 'empty-state';
+                empty.innerText = "Aún no tienes ideas guardadas.";
+                listContainer.appendChild(empty);
+            }
+        }
+
+        // 7. Borrar idea
+        function deleteIdea(id) {
+            if(confirm("¿Borrar esta idea?")) {
+                // Eliminar del DOM (pantalla)
+                const card = document.querySelector(`li.delete-btn[onclick*="${id}"]`).closest('li');
+                card.remove();
+
+                // Eliminar de la base de datos (localStorage)
+                let ideas = JSON.parse(localStorage.getItem('myIdeas')) || [];
+                ideas = ideas.filter(idea => idea.id !== id);
+                localStorage.setItem('myIdeas', JSON.stringify(ideas));
+            }
+        }
+
+        // 8. Guardar en LocalStorage
+        function saveToLocalStorage(newIdea) {
+            let ideas = JSON.parse(localStorage.getItem('myIdeas')) || [];
+            ideas.push(newIdea);
+            localStorage.setItem('myIdeas', JSON.stringify(ideas));
+        }
+
+        // Seguridad básica contra código malicioso en el input
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
