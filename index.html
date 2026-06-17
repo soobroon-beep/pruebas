@@ -343,7 +343,9 @@ body {
 .kanban-card-m { background:var(--bg-tertiary); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; margin-bottom:8px; transition:all 0.2s; touch-action:manipulation; }
 .kanban-card-m:active { transform:scale(0.97); }
 
-/* ========== NOTES - GOOGLE KEEP STYLE (FULL BG COLOR) ========== */
+/* ============================================== */
+/* ===== NOTAS CORREGIDAS (Google Keep Style) ===== */
+/* ============================================== */
 .notes-grid-keep {
   display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px;
 }
@@ -352,47 +354,119 @@ body {
   border-radius:var(--radius); overflow:hidden; min-height:120px;
   cursor:pointer; transition:all 0.3s; display:flex; flex-direction:column;
   position:relative; box-shadow:0 2px 8px rgba(0,0,0,0.2);
-  border: none;
+  border:none; /* Bordes invisibles para efecto puro */
 }
 
 .note-card-keep:active { transform:scale(0.96); }
 
-.note-card-keep .nc-header { padding:14px 14px 4px; }
-.note-card-keep .nc-title { font-size:13px; font-weight:700; line-height:1.3; margin-bottom:6px; word-break:break-word; }
-.note-card-keep .nc-preview { font-size:12px; line-height:1.5; flex:1; display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; color:rgba(0,0,0,0.6); word-break:break-word; }
-.note-card-keep .nc-footer { padding:6px 14px 8px; display:flex; align-items:center; gap:6px; justify-content:flex-end; }
+/* Header de la nota (Título) - con margen interno */
+.note-card-keep .nc-header { padding:14px 14px 2px; }
+.note-card-keep .nc-title { font-size:13px; font-weight:700; line-height:1.3; margin-bottom:6px; word-break:break-word; color:inherit; }
+
+/* Preview del contenido - CON MARGEN LATERAL visible */
+.note-card-keep .nc-preview { 
+  flex:1; 
+  font-size:12px; 
+  line-height:1.55; 
+  display:-webkit-box; 
+  -webkit-line-clamp:5; 
+  -webkit-box-orient:vertical; 
+  overflow:hidden; 
+  color:rgba(0,0,0,0.6); /* Texto oscuro */
+  word-break:break-word; 
+  padding:0 14px; /* Padding lateral vital para que no se pegue */
+  margin-bottom:4px;
+}
+
+/* Footer con margen interno */
+.note-card-keep .nc-footer { 
+  padding:6px 14px 8px; 
+  display:flex; align-items:center; gap:6px; justify-content:flex-end;
+}
+
 .note-card-keep .nc-date { font-size:9px; color:rgba(0,0,0,0.35); text-transform:uppercase; letter-spacing:0.5px; }
 .note-card-keep .nc-delete { opacity:0; transition:opacity 0.2s; background:none; border:none; color:rgba(0,0,0,0.4); cursor:pointer; font-size:14px; padding:2px; }
 .note-card-keep:hover .nc-delete { opacity:1; }
 .note-card-keep .nc-delete:hover { color:rgba(0,0,0,0.8); }
 
-/* ========== PROJECTS - GOOGLE KEEP STYLE (FULL BG COLOR + ICONS) ========== */
+/* ============================================== */
+/* ===== PROYECTOS CORREGIDOS (Hero Icon Cover) ===== */
+/* ============================================== */
 .projects-grid-keep {
   display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px;
 }
 
 .proj-card-keep {
-  border-radius:var(--radius); overflow:hidden; min-height:110px;
+  border-radius:var(--radius); overflow:hidden; min-height:140px; /* Más alto para el hero */
   cursor:pointer; transition:all 0.3s; display:flex; flex-direction:column;
   position:relative; box-shadow:0 2px 8px rgba(0,0,0,0.2);
-  border: none; padding:0;
+  border:none; padding:0;
 }
 
 .proj-card-keep:active { transform:scale(0.96); }
 
-.proj-card-keep .pc-icon-wrap { padding:14px 14px 4px; display:flex; align-items:center; gap:8px; }
-.proj-card-keep .pc-icon-svg { width:24px; height:24px; flex-shrink:0; }
-.proj-card-keep .pc-name { font-size:13px; font-weight:700; color:#1a1a2e; word-break:break-word; flex:1; }
-.proj-card-keep .pc-status { font-size:9px; padding:2px 6px; border-radius:4px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; background:rgba(0,0,0,0.1); color:rgba(0,0,0,0.5); }
-.proj-card-keep .pc-desc { font-size:11.5px; flex:1; padding:4px 14px 6px; line-height:1.5; color:rgba(0,0,0,0.55); word-break:break-word; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
-.proj-card-keep .pc-progress-wrap { padding:0 14px 8px; }
-.proj-card-keep .pc-progress-bar { height:4px; background:rgba(0,0,0,0.12); border-radius:2px; overflow:hidden; }
-.proj-card-keep .pc-progress-fill { height:100%; border-radius:2px; transition:width 0.5s; }
-.proj-card-keep .pc-footer { padding:4px 14px 10px; display:flex; align-items:center; justify-content:space-between; }
+/* HERO AREA (Icono Grande) */
+.pc-hero-area {
+  height: 75px;
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Fondo decorativo del hero */
+.pc-hero-area::before {
+  content:''; position:absolute; inset:0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(0,0,0,0.02));
+}
+
+/* El SVG del icono */
+.pc-hero-icon {
+  width: 48px; height: 48px;
+  z-index: 2;
+  fill: none; stroke: rgba(0,0,0,0.5); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* BODY AREA (Contenido debajo del hero) */
+.pc-body-area {
+  flex: 1;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+/* Fila de nombre + estado */
+.proj-card-keep .pc-name-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px;
+}
+.proj-card-keep .pc-name { 
+  font-size: 14px; font-weight: 700; color: #1a1a2e; line-height: 1.3; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.proj-card-keep .pc-status { 
+  font-size: 9px; padding: 3px 8px; border-radius: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(0,0,0,0.1); color: rgba(0,0,0,0.45); white-space: nowrap; flex-shrink: 0;
+}
+
+/* Descripción */
+.proj-card-keep .pc-desc { 
+  font-size: 12px; line-height: 1.45; color: rgba(0,0,0,0.6); word-break: break-word;
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; flex:1; min-height:0; margin-bottom: 2px;
+}
+
+/* Progress y Footer fuera del hero */
+.pc-progress-wrap { padding: 4px 14px 6px; }
+.pc-progress-bar { height: 5px; background: rgba(0,0,0,0.1); border-radius:3px; overflow:hidden; }
+.pc-progress-fill { height:100%; background-color: #1a1a2e; opacity: 0.3; transition:width 0.5s; }
+
+.proj-card-keep .pc-footer { padding:6px 14px 8px; display:flex; align-items:center; justify-content:space-between; }
 .proj-card-keep .pc-prog-text { font-size:9px; color:rgba(0,0,0,0.35); font-weight:700; }
-.proj-card-keep .pc-delete { background:none; border:none; color:rgba(0,0,0,0.3); cursor:pointer; font-size:14px; padding:2px; opacity:0; transition:opacity 0.2s; }
+.proj-card-keep .pc-delete { background:none; border:none; color:rgba(0,0,0,0.2); cursor:pointer; font-size:14px; padding:2px; opacity:0; transition:opacity 0.2s; }
 .proj-card-keep:hover .pc-delete { opacity:1; }
-.proj-card-keep .pc-delete:hover { color:rgba(0,0,0,0.7); }
+.proj-card-keep .pc-delete:hover { color:rgba(0,0,0,0.6); }
+
 
 /* ========== CHARTS (Canvas) ========== */
 .chart-container { position:relative; width:100%; margin-bottom:24px; }
@@ -839,7 +913,6 @@ select.fc { appearance:none; cursor:pointer; background-image:url("data:image/sv
               <p>Gestiona y cumple tus objetivos</p>
             </div>
           </div>
-          <button class="btn btn-primary" onclick="openTaskModal()">⚡ + Tarea</button>
         </div>
 
         <div class="filter-chips">
@@ -856,7 +929,7 @@ select.fc { appearance:none; cursor:pointer; background-image:url("data:image/sv
         <div class="task-list" id="tasksList"></div>
       </section>
 
-      <!-- ========= PROJECTS (KEEP STYLE) ========= -->
+      <!-- ========= PROJECTS (GOOGLE KEEP STYLE HERO) ========== -->
       <section class="page-section" id="page-projects">
         <div class="page-header">
           <div class="page-title-row">
@@ -875,7 +948,7 @@ select.fc { appearance:none; cursor:pointer; background-image:url("data:image/sv
         <div class="projects-grid-keep" id="projectsGrid"></div>
       </section>
 
-      <!-- ========= NOTES (KEEP STYLE) ========= -->
+      <!-- ========= NOTES (GOOGLE KEEP STYLE CLEAN) ========== -->
       <section class="page-section" id="page-notes">
         <div class="page-header">
           <div class="page-title-row">
@@ -1709,25 +1782,45 @@ function renderTaskChart(){
 
 function roundRect(ctx,x,y,w,h,r){if(h<1)return;ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h);ctx.lineTo(x,y+h);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
 
-// ==================== PROJECTS (GOOGLE KEEP STYLE) ====================
+// ==================== PROJECTS (GOOGLE KEEP STYLE HERO) ========== */
 function renderProjects(f){
   let projs=[...D.projects||[]];if(f==='active')projs=projs.filter(p=>p.status==='active');else if(f==='completed')projs=projs.filter(p=>p.status==='completed');
   const g=document.getElementById('projectsGrid');
 
-  // SVG icon helper
+  // SVG Icon Helper function inside to ensure it's in scope
   function getIconSVG(iconId){
     const icons = window._projectIcons;
     if(icons && iconId < icons.length) return icons[iconId];
-    // default: grid icon
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="#4a4a6a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>`;
+    // default fallback grid icon
+    return `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>`;
   }
 
   g.innerHTML=projs.length?projs.map(p=>{const tasks=(D.tasks||[]).filter(t=>t.projectId===p.id);const done=tasks.filter(t=>t.status==='completed').length;const pct=tasks.length?Math.round(done/tasks.length*100):0;
+  // NEW HTML STRUCTURE: Hero Cover + Body Content
   return`<div class="proj-card-keep" style="background:${p.color||'#e8d5f5'};" onclick="openProjectModal('${p.id}')">
-    <div class="pc-icon-wrap">${getIconSVG(p.iconId)}<span class="pc-name">${escape(p.name)}</span><span class="pc-status">${sLabel(p.status).split(' ').pop()}</span></div>
-    ${p.description?`<div class="pc-desc">${escape(p.description)}</div>`:''}
-    <div class="pc-progress-wrap"><div class="pc-progress-bar"><div class="pc-progress-fill" style="width:${pct}%;background:rgba(0,0,0,0.2);"></div></div></div>
-    <div class="pc-footer"><span class="pc-prog-text">${done}/${tasks.length}</span><button class="pc-delete" onclick="event.stopPropagation();deleteProject('${p.id}')" title="Eliminar">✕</button></div>
+    <!-- HERO ICON COVER -->
+    <div class="pc-hero-area" style="background-color: ${p.color || '#e8d5f5'};">
+      ${getIconSVG(p.iconId)}
+    </div>
+    
+    <!-- BODY CONTENT (Name, Status, Desc, Progress) -->
+    <div class="pc-body-area">
+      <div class="pc-name-row">
+        <span class="pc-name" style="color:#1a1a2e">${escape(p.name)}</span>
+        <span class="pc-status">${sLabel(p.status).split(' ').pop()}</span>
+      </div>
+      
+      ${p.description?`<div class="pc-desc">${escape(p.description)}</div>`:''}
+      
+      <div class="pc-progress-wrap">
+        <div class="pc-progress-bar"><div class="pc-progress-fill" style="width:${pct}%"></div></div>
+      </div>
+      
+      <div class="pc-footer">
+        <span class="pc-prog-text">${done}/${tasks.length}</span>
+        <button class="pc-delete" onclick="event.stopPropagation();deleteProject('${p.id}')" title="Eliminar">✕</button>
+      </div>
+    </div>
   </div>`}).join(''):'<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:15px;grid-column:1/-1;">No hay proyectos 📁</div>';
 }
 
@@ -1776,19 +1869,21 @@ function deleteProject(id){
   }
 }
 
-// ==================== NOTES (GOOGLE KEEP STYLE - FULL BG COLOR) ====================
+// ==================== NOTES (GOOGLE KEEP STYLE - CLEANER PADDING) ========== */
 function renderNotes(f){
   let notes=[...D.notes||[]];if(f!=='all')notes=notes.filter(n=>n.category===f);
   notes.sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
   const g=document.getElementById('notesGrid');
 
-  // Get background text color based on lightness
+  // Get background text color based on lightness (for dark/light theme of the note card)
   function getTextColor(bg){return bg.toLowerCase()==='#fffde7'||bg.toLowerCase()==='#fff8e1'||bg.toLowerCase()==='#fff9c4'||parseInt(bg,16)>0xaaaaaa?'#333':'rgba(0,0,0,0.6)';}
 
   g.innerHTML=notes.length?notes.map(n=>{
     const txtColor=getTextColor(n.color||'#fffde7');
+    // Structure: Full BG color card. Title in header (margined). Content with lateral margin.
     return`<div class="note-card-keep" style="background:${n.color||'#fffde7'};color:${txtColor};" onclick="openNoteModal('${n.id}')">
       <div class="nc-header"><div class="nc-title">${escape(n.title||'Sin título')}</div></div>
+      <!-- Preview con padding lateral visible -->
       <div class="nc-preview">${escape((n.content||'').substring(0,200))}</div>
       <div class="nc-footer">
         <span class="nc-date">${fmtD(n.updatedAt||n.createdAt)}</span>
@@ -2360,7 +2455,7 @@ function buildIconPicker(){
     // Puzzle piece
     `<path d="M19.439 15.424a1 1 0 00-1.006.037l-2.434 1.554a1 1 0 01-1.128-.015l-3.04-2.432a1 1 0 00-.968-.132L9.5 15.72a1 1 0 00-.5 1.28l1.28 3.2a1 1 0 00.94.56h8a1 1 0 00.94-.56l1.28-3.2a1 1 0 00-.5-1.28l-1.28-1.28z"/><path d="M12 2a3 3 0 00-3 3v2a3 3 0 006 0V5a3 3 0 00-3-3z"/>`,
     // Gear/settings
-    `<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.821l-.003.003a1.65 1.65 0 01-2.331 0l-.003-.003a1.65 1.65 0 00-1.821-.33 1.65 1.65 0 00-1.07 1.48v.022a1.65 1.65 0 001.07 1.48c.573.147 1.242.048 1.73-.29l.003-.003a1.65 1.65 0 012.331 0l.003.003a1.65 1.65 0 00.33 1.821c.342.488.87.776 1.42.895v.022a1.65 1.65 0 01-1.42.895l-.003-.003a1.65 1.65 0 00-2.331 0l-.003.003a1.65 1.65 0 01-1.73.29 1.65 1.65 0 01-1.48-1.07h-.022a1.65 1.65 0 01-1.48-1.07 1.65 1.65 0 00-1.07-1.48l-.022-.003a1.65 1.65 0 00-.022-.022c-.573-.147-1.242-.048-1.73.29l-.003.003a1.65 1.65 0 01-2.331 0l-.003-.003a1.65 1.65 0 00-.33-1.821c-.488-.342-.776-.87-.895-1.42h-.022a1.65 1.65 0 01.895-1.42l.003-.003a1.65 1.65 0 002.331 0l.003.003a1.65 1.65 0 011.73.29h.022c.573.147 1.242.048 1.73-.29l.003-.003a1.65 1.65 0 012.331 0l.003.003a1.65 1.65 0 001.821.33c.488-.342.776-.87.895-1.42h.022a1.65 1.65 0 011.42.895l.003.003a1.65 1.65 0 00.33 1.821c.342.488.87.776 1.42.895v.022z"/>`,
+    `<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.821l-.003.003a1.65 1.65 0 01-2.331 0l-.003-.003a1.65 1.65 0 00-1.821-.33 1.65 1.65 0 00-1.07 1.48v.022a1.65 1.65 0 001.07 1.48c.573.147 1.242.048 1.73-.29l.003-.003a1.65 1.65 0 012.331 0l.003.003a1.65 1.65 0 00.33 1.821c.488.342.776.87.895 1.42h.022a1.65 1.65 0 01-1.42.895l-.003-.003a1.65 1.65 0 00-2.331 0l-.003.003a1.65 1.65 0 01-1.73.29 1.65 1.65 0 01-1.48-1.07h-.022a1.65 1.65 0 01-1.48-1.07 1.65 1.65 0 00-1.07-1.48l-.022-.003a1.65 1.65 0 00-.022-.022c-.573-.147-1.242-.048-1.73.29l-.003.003a1.65 1.65 0 01-2.331 0l-.003-.003a1.65 1.65 0 00-.33-1.821c-.488-.342-.776-.87-.895-1.42h-.022a1.65 1.65 0 011.42-.895l.003-.003a1.65 1.65 0 002.331 0l.003.003a1.65 1.65 0 011.73.29h.022c.573.147 1.242.048 1.73-.29l.003-.003a1.65 1.65 0 012.331 0l.003.003a1.65 1.65 0 001.821.33c.488-.342.776-.87.895-1.42h.022a1.65 1.65 0 011.42.895l.003.003a1.65 1.65 0 00.33 1.821c.342.488.87.776 1.42.895v.022z"/>`,
     // Wand/magic
     `<path d="M15 4l6 2-6 2-2-6z"/><path d="M9 3L3 9l6 6 6-6-6-6z"/><path d="M6 18l-3 3"/><path d="M18 6l3-3"/><path d="M12 12l6 6"/>`,
     // Lightbulb
