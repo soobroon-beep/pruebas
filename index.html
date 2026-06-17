@@ -1,0 +1,971 @@
+// @ts-nocheck
+// ══════════════════════════════════════════════
+// STATE & PERSIST
+// ══════════════════════════════════════════════
+const state = {
+  notes:    JSON.parse(localStorage.getItem('nn_notes')    || '[]'),
+  events:   JSON.parse(localStorage.getItem('nn_events')   || '[]'),
+  projects: JSON.parse(localStorage.getItem('nn_projects') || '[]'),
+  habits:   JSON.parse(localStorage.getItem('nn_habits')   || '[]'),
+  routines: JSON.parse(localStorage.getItem('nn_routines') || '[]'),
+  reminders:JSON.parse(localStorage.getItem('nn_reminders')|| '[]'),
+  diary:    JSON.parse(localStorage.getItem('nn_diary')    || '[]'),
+  calDate:  new Date(),
+  theme:    localStorage.getItem('nn_theme') || 'dark',
+  aiHistory: JSON.parse(localStorage.getItem('nn_ai_history') || '[]'),
+  settings: JSON.parse(localStorage.getItem('nn_settings') || JSON.stringify({
+    username: 'Víctor',
+    accentColor: '#7c6af7',
+    firebaseApiKey: '',
+    firebaseProjectId: '',
+    autoSync: false,
+    diaryLocked: true,
+    systemPrompt: 'Eres un asistente personal inteligente integrado en NOVA NEXUS. Ayudas con productividad, tareas, proyectos y organización personal. Responde siempre en español de forma concisa y útil.'
+  }))
+};
+
+const save = () => {
+  localStorage.setItem('nn_notes',      JSON.stringify(state.notes));
+  localStorage.setItem('nn_events',     JSON.stringify(state.events));
+  localStorage.setItem('nn_projects',   JSON.stringify(state.projects));
+  localStorage.setItem('nn_habits',     JSON.stringify(state.habits));
+  localStorage.setItem('nn_routines',   JSON.stringify(state.routines));
+  localStorage.setItem('nn_reminders',  JSON.stringify(state.reminders));
+  localStorage.setItem('nn_diary',      JSON.stringify(state.diary));
+  localStorage.setItem('nn_ai_history', JSON.stringify(state.aiHistory.slice(-60)));
+  localStorage.setItem('nn_settings',   JSON.stringify(state.settings));
+  if (fb.enabled && fb.autoSync) fb.pushAll();
+};
+
+// ══════════════════════════════════════════════
+// FIREBASE MODULE
+// ══════════════════════════════════════════════
+const fb = {
+  enabled: false,
+  autoSync: false,
+  token: null,
+  uid: null,
+  projectId: null,
+  apiKey: null,
+  unsubscribes: [],
+
+  get baseUrl() {
+    return `https://firestore.googleapis.com/v1/projects/${this.projectId}/databases/(default)/documents`;
+  },
+
+  async init(apiKey, projectId) {
+    this.apiKey = apiKey;
+    this.projectId = projectId;
+    setSyncStatus('syncing', 'Conectando…');
+    try {
+      const r = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`,
+        { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ returnSecureToken: true }) }
+      );
+      const d = await r.json();
+      if (d.error) throw new Error(d.error.message);
+      this.token = d.idToken;
+      this.uid   = d.localId;
+      this.enabled = true;
+      this.autoSync = state.settings.autoSync;
+      setSyncStatus('connected', 'Firebase activo');
+      toast('✅ Firebase conectado');
+      if (this.autoSync) await this.pullAll();
+    } catch(e) {
+      setSyncStatus('error', 'Error Firebase');
+      toast('⚠️ Firebase: ' + e.message);
+    }
+  },
+
+  headers() {
+    return { 'Content-Type':'application/json',
+             'Authorization': `Bearer ${this.token}` };
+  },
+
+  toDoc(data) {
+    const fields = {};
+    Object.entries(data).forEach(([k,v]) => {
+      if (typeof v === 'string')  fields[k] = { stringValue: v };
+      else if (typeof v === 'number') fields[k] = { integerValue: v };
+      else if (typeof v === 'boolean') fields[k] = { booleanValue: v };
+      else fields[k] = { stringValue: JSON.stringify(v) };
+    });
+    return { fields };
+  },
+
+  fromDoc(doc) {
+    const out = {};
+    Object.entries(doc.fields||{}).forEach(([k,v]) => {
+      if (v.stringValue !== undefined) {
+        try { out[k] = JSON.parse(v.stringValue); } catch { out[k] = v.stringValue; }
+      } else if (v.integerValue !== undefined) out[k] = Number(v.integerValue);
+      else if (v.booleanValue !== undefined) out[k] = v.booleanValue;
+    });
+    return out;
+  },
+
+  async pushCollection(name, arr) {
+    if (!this.enabled) return;
+    setSyncStatus('syncing', 'Sincronizando…');
+    try {
+      for (const item of arr) {
+        await fetch(
+          `${this.baseUrl}/users/${this.uid}/${name}/${item.id}?key=${this.apiKey}`,
+          { method:'PATCH', headers: this.headers(),
+            body: JSON.stringify(this.toDoc({...item, _json: JSON.stringify(item)})) }
+        );
+      }
+      setSyncStatus('connected', 'Sincronizado ✓');
+    } catch(e) { setSyncStatus('error', 'Error sync'); }
+  },
+
+  async pullCollection(name) {
+    if (!this.enabled) return null;
+    try {
+      const r = await fetch(
+        `${this.baseUrl}/users/${this.uid}/${name}?key=${this.apiKey}`,
+        { headers: this.headers() }
+      );
+      const d = await r.json();
+      if (!d.documents) return [];
+      return d.documents.map(doc => {
+        const f = this.fromDoc(doc);
+        try { return JSON.parse(f._json || '{}'); } catch { return f; }
+      });
+    } catch { return null; }
+  },
+
+  async pushAll() {
+    await this.pushCollection('notes',    state.notes);
+    await this.pushCollection('events',   state.events);
+    await this.pushCollection('projects', state.projects);
+    await this.pushCollection('habits',   state.habits);
+    await this.pushCollection('routines', state.routines);
+    await this.pushCollection('reminders',state.reminders);
+    await this.pushCollection('diary',    state.diary);
+  },
+
+  async pullAll() {
+    setSyncStatus('syncing', 'Descargando…');
+    const [notes, events, projects, habits, routines, reminders, diary] = await Promise.all([
+      this.pullCollection('notes'),
+      this.pullCollection('events'),
+      this.pullCollection('projects'),
+      this.pullCollection('habits'),
+      this.pullCollection('routines'),
+      this.pullCollection('reminders'),
+      this.pullCollection('diary')
+    ]);
+    let changed = false;
+    if (notes    && notes.length)    { state.notes    = notes;    changed = true; }
+    if (events   && events.length)   { state.events   = events;   changed = true; }
+    if (projects && projects.length) { state.projects = projects; changed = true; }
+    if (habits   && habits.length)   { state.habits   = habits;   changed = true; }
+    if (routines && routines.length) { state.routines = routines; changed = true; }
+    if (reminders && reminders.length) { state.reminders = reminders; changed = true; }
+    if (diary    && diary.length)    { state.diary    = diary;    changed = true; }
+    if (changed) { save(); toast('☁️ Datos sincronizados desde Firebase'); }
+    setSyncStatus('connected', 'Sincronizado ✓');
+  }
+};
+
+function setSyncStatus(st, label) {
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLabel');
+  if (!dot||!lbl) return;
+  dot.className = 'sync-dot ' + st;
+  lbl.textContent = label;
+}
+
+// ══════════════════════════════════════════════
+// RECORDATORIOS Y NOTIFICACIONES
+// ══════════════════════════════════════════════
+const initNotifications = () => {
+  if (window.Notification && Notification.permission !== "granted" && Notification.permission !== "denied") {
+    Notification.requestPermission();
+  }
+  setInterval(() => {
+    const now = new Date();
+    let changed = false;
+    state.reminders.forEach(r => {
+      if (!r.notified && new Date(r.datetime) <= now) {
+        if (window.Notification && Notification.permission === 'granted') {
+           new Notification('⏰ NOVA NEXUS: ' + r.title, { body: r.desc });
+        }
+        r.notified = true;
+        changed = true;
+        toast('⏰ Recordatorio: ' + r.title);
+      }
+    });
+    if (changed) {
+      save();
+      const el = document.getElementById('remindersList');
+      if(el) renderRemindersView();
+    }
+  }, 30000);
+};
+
+// ══════════════════════════════════════════════
+// THEME & ACCENT
+// ══════════════════════════════════════════════
+const ACCENT_PRESETS = [
+  { name:'Morado', h:'#7c6af7', a:'#a78bfa', b:'#38bdf8' },
+  { name:'Rosa',   h:'#ec4899', a:'#f472b6', b:'#fb7185' },
+  { name:'Verde',  h:'#10b981', a:'#34d399', b:'#6ee7b7' },
+  { name:'Naranja',h:'#f59e0b', a:'#fbbf24', b:'#fd9a00' },
+  { name:'Azul',   h:'#3b82f6', a:'#60a5fa', b:'#38bdf8' },
+  { name:'Rojo',   h:'#ef4444', a:'#f87171', b:'#fb923c' },
+];
+
+function applyAccent(hex) {
+  document.documentElement.style.setProperty('--accent', hex);
+  const preset = ACCENT_PRESETS.find(p => p.h === hex);
+  if (preset) {
+    document.documentElement.style.setProperty('--accent2', preset.a);
+    document.documentElement.style.setProperty('--accent3', preset.b);
+  }
+  state.settings.accentColor = hex;
+}
+
+const applyTheme = t => {
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('themeIcon').textContent  = t === 'dark' ? '☀️' : '🌙';
+  document.getElementById('themeLabel').textContent = t === 'dark' ? 'Modo Claro' : 'Modo Oscuro';
+  localStorage.setItem('nn_theme', t);
+};
+
+// ══════════════════════════════════════════════
+// USERNAME / AVATAR / GREETING
+// ══════════════════════════════════════════════
+function applyUsername(name) {
+  const initial = (name||'V')[0].toUpperCase();
+  document.getElementById('avatarEl').textContent = initial;
+  initGreeting();
+}
+
+const initGreeting = () => {
+  const h = new Date().getHours();
+  const g = h<12?'Buenos días':h<18?'Buenas tardes':'Buenas noches';
+  const name = state.settings.username || 'Víctor';
+  const el = document.getElementById('greetingText');
+  if(el) el.textContent = `${g}, ${name} ✦`;
+  const dObj = new Date();
+  const d = dObj.toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const del = document.getElementById('dateText');
+  if(del) del.textContent = d.charAt(0).toUpperCase() + d.slice(1);
+};
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+const toast = msg => {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+};
+
+// ══════════════════════════════════════════════
+// CALENDAR (widget)
+// ══════════════════════════════════════════════
+const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+const renderCalendar = () => {
+  const d=state.calDate, y=d.getFullYear(), m=d.getMonth();
+  const calMonthEl = document.getElementById('calMonth');
+  if (!calMonthEl) return;
+  calMonthEl.textContent = `${months[m]} ${y}`;
+  const first=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate();
+  const prevDays=new Date(y,m,0).getDate();
+  const grid=document.getElementById('calGrid');
+  if (!grid) return;
+  grid.innerHTML='';
+  const today=new Date();
+  const eventDays=new Set(state.events.filter(e=>{
+    const ed=new Date(e.date+'T12:00:00');
+    return ed.getFullYear()===y && ed.getMonth()===m;
+  }).map(e=>new Date(e.date+'T12:00:00').getDate()));
+  for(let i=0;i<first;i++){
+    const el=document.createElement('div');
+    el.className='cal-day other-month';
+    el.textContent=prevDays-first+1+i;
+    grid.appendChild(el);
+  }
+  for(let i=1;i<=days;i++){
+    const el=document.createElement('div');
+    el.className='cal-day';
+    if(i===today.getDate()&&m===today.getMonth()&&y===today.getFullYear()) el.classList.add('today');
+    if(eventDays.has(i)) el.classList.add('has-event');
+    el.textContent=i;
+    el.addEventListener('click',()=>selectDay(y,m,i));
+    grid.appendChild(el);
+  }
+  const remaining=42-first-days;
+  for(let i=1;i<=remaining;i++){
+    const el=document.createElement('div');
+    el.className='cal-day other-month';
+    el.textContent=i;
+    grid.appendChild(el);
+  }
+  renderTodayEvents();
+};
+
+const selectDay=(y,m,d)=>{
+  const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  const evDate=document.getElementById('evDate');
+  if(evDate) evDate.value=ds;
+  openModal('eventModal');
+};
+
+const renderTodayEvents=()=>{
+  const today=new Date().toISOString().split('T')[0];
+  const todayEvs=state.events.filter(e=>e.date===today).sort((a,b)=>a.start.localeCompare(b.start));
+  const list=document.getElementById('eventsList');
+  if(!list) return;
+  list.innerHTML='';
+  if(!todayEvs.length){
+    list.innerHTML='<div style="text-align:center;color:var(--text3);font-size:.82rem;padding:12px">Sin eventos hoy</div>';
+    return;
+  }
+  todayEvs.forEach(ev=>{
+    const el=document.createElement('div');
+    el.className='event-item';
+    el.style.setProperty('--c',ev.color||'var(--accent)');
+    el.innerHTML=`<div class="event-time">${ev.start}${ev.end?'–'+ev.end:''}</div><div class="event-name">${ev.title}</div>`;
+    list.appendChild(el);
+  });
+};
+
+// ══════════════════════════════════════════════
+// NOTES (widget)
+// ══════════════════════════════════════════════
+const renderNotes=()=>{
+  const c=document.getElementById('notesMasonry');
+  if(!c) return;
+  c.innerHTML='';
+  const statNotes=document.getElementById('statNotes');
+  if(statNotes) statNotes.textContent=state.notes.length;
+  const sorted=[...state.notes].sort((a,b)=>b.pinned-a.pinned);
+  if(!sorted.length){
+    c.innerHTML='<div style="color:var(--text3);font-size:.85rem;text-align:center;padding:20px">No hay notas aún. ¡Crea una!</div>';
+    return;
+  }
+  sorted.forEach((n)=>{
+    const el=document.createElement('div');
+    el.className='note-card'+(n.pinned?' pinned':'');
+    el.innerHTML=`
+      <div class="note-color" style="background:${n.color}"></div>
+      <div class="note-title">${n.title||'Sin título'}</div>
+      <div class="note-body">${n.body||''}</div>
+      ${n.tags?.length?`<div class="note-tags">${n.tags.map(t=>`<span class="note-tag">${t}</span>`).join('')}</div>`:''}
+    `;
+    el.addEventListener('click',()=>{
+      const idx=state.notes.findIndex(x=>x.id===n.id);
+      if(idx>=0){state.notes[idx].pinned=!state.notes[idx].pinned;save();renderNotes();toast(state.notes[idx].pinned?'📌 Nota anclada':'Nota desanclada');}
+    });
+    c.appendChild(el);
+  });
+};
+
+// ══════════════════════════════════════════════
+// PROJECTS (widget)
+// ══════════════════════════════════════════════
+const renderProjects=()=>{
+  const c=document.getElementById('projectsList');
+  if(!c) return;
+  c.innerHTML='';
+  const statProjects=document.getElementById('statProjects');
+  if(statProjects) statProjects.textContent=state.projects.filter(p=>p.status==='active').length;
+  if(!state.projects.length){
+    c.innerHTML='<div style="color:var(--text3);font-size:.85rem;text-align:center;padding:20px">Sin proyectos. ¡Comienza uno!</div>';
+    return;
+  }
+  state.projects.forEach(p=>{
+    const pct=p.tasks?.length?Math.round(p.tasks.filter(t=>t.done).length/p.tasks.length*100):0;
+    const badges={active:'badge-active',pause:'badge-pause',idea:'badge-idea'};
+    const labels={active:'Activo',pause:'Pausado',idea:'Idea'};
+    const el=document.createElement('div');
+    el.className='project-item';
+    el.innerHTML=`
+      <div class="proj-top"><div class="proj-name">${p.name}</div><span class="proj-badge ${badges[p.status]}">${labels[p.status]}</span></div>
+      <div class="proj-desc">${p.desc||''}</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="proj-footer"><span>${p.tasks?.length||0} tareas</span><span>${pct}%</span></div>
+    `;
+    c.appendChild(el);
+  });
+};
+
+const updateStats=()=>{
+  const el=document.getElementById('statTasks');
+  if(el) el.textContent=state.projects.reduce((a,p)=>a+(p.tasks?.filter(t=>!t.done).length||0),0);
+};
+
+// ══════════════════════════════════════════════
+// MODALS
+// ══════════════════════════════════════════════
+const openModal=id=>document.getElementById(id)?.classList.add('open');
+const closeModal=id=>document.getElementById(id)?.classList.remove('open');
+
+// ══════════════════════════════════════════════
+// NAV & VIEWS
+// ══════════════════════════════════════════════
+const getDashboardHTML=()=>`
+<div class="stats-row">
+  <div class="stat-card" style="--c:var(--accent)">
+    <div class="label">Tareas hoy</div>
+    <div class="value" id="statTasks">0</div>
+    <div class="sub">pendientes</div>
+    <div class="icon">✅</div>
+  </div>
+  <div class="stat-card" style="--c:var(--green)">
+    <div class="label">Proyectos</div>
+    <div class="value" id="statProjects">0</div>
+    <div class="sub">activos</div>
+    <div class="icon">🚀</div>
+  </div>
+  <div class="stat-card" style="--c:var(--yellow)">
+    <div class="label">Notas</div>
+    <div class="value" id="statNotes">0</div>
+    <div class="sub">guardadas</div>
+    <div class="icon">🗒️</div>
+  </div>
+  <div class="stat-card" style="--c:var(--pink)">
+    <div class="label">Hábitos</div>
+    <div class="value" id="statHabits">${(state.habits||[]).filter(h=>(h.logs||[]).includes(new Date().toISOString().split('T')[0])).length}/${(state.habits||[]).length}</div>
+    <div class="sub">completados hoy</div>
+    <div class="icon">🔥</div>
+  </div>
+</div>
+<div class="dash-grid">
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div class="notes-section">
+      <div class="sec-header">
+        <div class="sec-title"><span>🗒️</span> Notas Recientes</div>
+        <div class="sec-action" id="addNoteBtn">+ Nueva nota</div>
+      </div>
+      <div class="notes-masonry" id="notesMasonry"></div>
+    </div>
+    
+    <div class="projects-card" id="dashDiary">
+      <div class="sec-header">
+        <div class="sec-title"><span>📖</span> Diario Emocional</div>
+        <div class="sec-action" id="viewDiaryBtn">Ir al Diario</div>
+      </div>
+      <div id="dashDiaryContent"></div>
+    </div>
+
+    <div class="ai-card">
+      <div class="ai-icon">✦</div>
+      <div class="ai-text">
+        <h3>IA Asistente</h3>
+        <p>Desglosa proyectos en tareas, resume notas, optimiza tu día. Tu copiloto personal está listo.</p>
+        <button class="ai-btn" data-view="ai">Abrir Asistente</button>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div class="cal-card">
+      <div class="sec-header">
+        <div class="sec-title"><span>📅</span> Calendario</div>
+        <div class="sec-action" id="addEventBtn">+ Evento</div>
+      </div>
+      <div class="cal-header">
+        <div class="cal-month" id="calMonth"></div>
+        <div class="cal-nav">
+          <button id="calPrev">‹</button>
+          <button id="calNext">›</button>
+        </div>
+      </div>
+      <div class="cal-days-header">
+        <div>Do</div><div>Lu</div><div>Ma</div><div>Mi</div>
+        <div>Ju</div><div>Vi</div><div>Sa</div>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="events-list" id="eventsList"></div>
+    </div>
+
+    <div class="projects-card" id="dashReminders">
+      <div class="sec-header">
+        <div class="sec-title"><span>⏰</span> Recordatorios</div>
+        <div class="sec-action" id="addReminderBtnDash">+ Recordatorio</div>
+      </div>
+      <div id="dashRemindersList"></div>
+    </div>
+
+    <div class="projects-card">
+      <div class="sec-header">
+        <div class="sec-title"><span>🚀</span> Proyectos</div>
+        <div class="sec-action" id="addProjectBtn">+ Proyecto</div>
+      </div>
+      <div id="projectsList"></div>
+    </div>
+  </div>
+</div>`;
+
+const renderDashboard=()=>{
+  document.getElementById('content').style.padding='24px';
+  document.getElementById('content').style.overflow='auto';
+  document.getElementById('content').innerHTML = getDashboardHTML();
+  document.getElementById('addNoteBtn')?.addEventListener('click',()=>openModal('noteModal'));
+  document.getElementById('addEventBtn')?.addEventListener('click',()=>{
+    const evDate=document.getElementById('evDate');
+    if(evDate) evDate.value=new Date().toISOString().split('T')[0];
+    openModal('eventModal');
+  });
+  document.getElementById('addProjectBtn')?.addEventListener('click',()=>openModal('projModal'));
+  document.querySelectorAll('#content [data-view]').forEach(el=>{
+    if(!el.classList.contains('nav-item')) el.addEventListener('click',()=>{
+      const v=el.dataset.view;
+      if(v==='ai') renderAIView();
+    });
+  });
+  document.getElementById('calPrev')?.addEventListener('click',()=>{state.calDate.setMonth(state.calDate.getMonth()-1);renderCalendar();});
+  document.getElementById('calNext')?.addEventListener('click',()=>{state.calDate.setMonth(state.calDate.getMonth()+1);renderCalendar();});
+  
+  document.getElementById('addReminderBtnDash')?.addEventListener('click', () => openModal('reminderModal'));
+  document.getElementById('viewDiaryBtn')?.addEventListener('click', () => { document.querySelector('[data-view="diary"]')?.click(); });
+
+  renderCalendar();renderNotes();renderProjects();updateStats();
+  renderDashReminders(); renderDashDiary();
+};
+
+const renderDashReminders = () => {
+    const list = document.getElementById('dashRemindersList');
+    if (!list) return;
+    list.innerHTML = '';
+    const sorted = [...state.reminders].filter(r => !r.notified || new Date(r.datetime) >= new Date()).sort((a,b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime()).slice(0, 5);
+    if (!sorted.length) {
+        list.innerHTML = '<div style="color:var(--text3);font-size:.85rem;padding:15px;text-align:center">No hay recordatorios pendientes.</div>';
+        return;
+    }
+    sorted.forEach(r => {
+        const d = new Date(r.datetime);
+        const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        list.innerHTML += `<div class="reminder-card"><div style="flex:1"><div style="font-weight:600;font-size:0.9rem">${r.title}</div><div style="font-size:0.75rem;color:var(--text2)">${dateStr}</div></div></div>`;
+    });
+};
+
+const renderDashDiary = () => {
+    const cont = document.getElementById('dashDiaryContent');
+    if (!cont) return;
+    cont.innerHTML = '';
+    const today = new Date().toISOString().split('T')[0];
+    const entry = state.diary.find(d => d.date === today);
+    if (entry) {
+        cont.innerHTML = `<div class="diary-card" style="margin-bottom:0"><div style="font-size:1.5rem;margin-bottom:8px">${entry.mood}</div><div class="blur-content" style="font-size:0.85rem;color:var(--text2)">${entry.text}</div></div>`;
+    } else {
+        cont.innerHTML = `<div style="color:var(--text3);font-size:.85rem;padding:15px;text-align:center">¿Cómo te sientes hoy? Ve al Diario para registrarlo.</div>`;
+    }
+};
+
+/* AI VIEW */
+const AI_CHIPS = ['Resume mis notas', 'Lista mis proyectos activos'];
+const renderAIView=()=>{
+  document.getElementById('content').style.padding='0';
+  document.getElementById('content').style.overflow='hidden';
+  document.getElementById('content').innerHTML=`
+  <div id="aiChatWrap" style="display:flex;flex-direction:column;height:100%;overflow:hidden">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:1.1rem">✦</div>
+        <div>
+          <div style="font-size:.95rem;font-weight:700">IA Asistente</div>
+          <div style="font-size:.73rem;color:var(--green);display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span>En línea / Actúa como simulador para AI Studio</div>
+        </div>
+      </div>
+      <button id="aiClearBtn" class="btn btn-ghost btn-sm">🗑 Limpiar</button>
+    </div>
+    <div id="aiMessages" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px"></div>
+    <div id="aiInputBar" style="padding:14px 18px;border-top:1px solid var(--border);background:var(--bg2);display:flex;gap:10px;align-items:flex-end">
+      <textarea id="aiInput" rows="1" placeholder="Solo lectura. Pega esto en prompt en vez." style="flex:1;background:var(--bg-inner);border:1px solid var(--border-inner);border-radius:16px;padding:11px 15px;color:var(--text);font-size:.87rem;outline:none"></textarea>
+      <button id="aiSendBtn" style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent3));border:none;color:#fff;font-size:1.1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">➤</button>
+    </div>
+  </div>`;
+  const msgs=document.getElementById('aiMessages');
+  state.aiHistory.forEach(m=>appendMessage(m.role,m.content,false));
+  if(state.aiHistory.length===0){
+    msgs.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;opacity:.6"><div style="font-size:3rem">✦</div><div>Hola, ${state.settings.username}</div></div>`;
+  }
+};
+const appendMessage=(role,content)=>{
+  const wrap=document.createElement('div');
+  wrap.className=`ai-msg ${role}`;
+  wrap.innerHTML=`<div class="bubble">${content}</div>`;
+  document.getElementById('aiMessages')?.appendChild(wrap);
+};
+
+
+/* PROJECTS VIEW */
+const renderProjectsView=()=>{
+  document.getElementById('content').style.padding='24px';
+  document.getElementById('content').style.overflow='auto';
+  document.getElementById('content').innerHTML=`
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div style="font-size:1.3rem;font-weight:800;display:flex;align-items:center;gap:10px"><span>🚀</span> Proyectos</div>
+    <button class="btn btn-primary" id="newProjBtn" style="padding:8px 16px;font-size:.82rem">+ Nuevo</button>
+  </div>
+  <div id="projViewList" style="display:flex;flex-direction:column;gap:16px;margin-top:8px"></div>`;
+  const list=document.getElementById('projViewList');
+  if(!state.projects.length) list.innerHTML=`<div style="text-align:center;color:var(--text3);padding:60px;font-size:.9rem">Sin proyectos aquí.</div>`;
+  state.projects.forEach(p=>{
+    const card=document.createElement('div');
+    card.className='proj-full-card';
+    card.innerHTML=`
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <span style="font-size:1.05rem;font-weight:700">${p.name}</span>
+          </div>
+          <div style="font-size:.82rem;color:var(--text2);margin-bottom:12px">${p.desc}</div>
+        </div>
+        <button class="tb-btn del-proj-btn" style="color:var(--red)">🗑</button>
+      </div>`;
+    card.querySelector('.del-proj-btn').addEventListener('click', () => { 
+        if(!confirm('Borrar?')) return; 
+        state.projects = state.projects.filter(x=>x.id!==p.id); 
+        save(); renderProjectsView(); 
+    });
+    list.appendChild(card);
+  });
+  document.getElementById('newProjBtn').addEventListener('click',()=>openModal('projModal'));
+};
+
+/* NOTES VIEW */
+const renderNotesView=()=>{
+  document.getElementById('content').style.padding='24px';
+  document.getElementById('content').style.overflow='auto';
+  document.getElementById('content').innerHTML=`
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <div style="font-size:1.3rem;font-weight:800;display:flex;align-items:center;gap:10px"><span>🗒️</span> Notas</div>
+    <button class="btn btn-primary" id="newNoteViewBtn" style="padding:8px 16px;font-size:.82rem">+ Nueva nota</button>
+  </div>
+  <div id="notesViewContainer" style="columns:3;gap:16px"></div>`;
+  const container = document.getElementById('notesViewContainer');
+  state.notes.forEach(n => {
+    const el=document.createElement('div');
+    el.style.cssText='break-inside:avoid;margin-bottom:16px;background:var(--bg-inner);border:1px solid var(--border-inner);border-radius:16px;padding:16px;position:relative';
+    el.innerHTML=`
+      <div style="height:4px;border-radius:4px;background:${n.color};margin-bottom:12px"></div>
+      <div style="font-size:.93rem;font-weight:700;margin-bottom:6px">${n.title}</div>
+      <div style="font-size:.81rem;color:var(--text2);line-height:1.55;margin-bottom:10px">${n.body}</div>
+      <button class="del-btn" style="position:absolute;top:10px;right:10px;background:none;border:none;color:var(--red);cursor:pointer">🗑</button>
+    `;
+    el.querySelector('.del-btn').addEventListener('click', () => {
+        if(!confirm('Borrar nota?')) return;
+        state.notes = state.notes.filter(x => x.id !== n.id);
+        save(); renderNotesView();
+    });
+    container.appendChild(el);
+  });
+  document.getElementById('newNoteViewBtn').addEventListener('click', ()=>openModal('noteModal'));
+};
+
+/* CALENDAR VIEW */
+const renderCalendarView=()=>{
+  document.getElementById('content').style.padding='24px';
+  document.getElementById('content').style.overflow='auto';
+  document.getElementById('content').innerHTML=`
+  <div style="font-size:1.3rem;font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:16px"><span>📅</span> Calendario Interactivo</div>
+  <div style="padding:24px;border:1px solid var(--border);border-radius:var(--card-r);background:var(--bg-card);backdrop-filter:blur(4px);text-align:center;color:var(--text2)">
+   Esta vista requiere la integración de vista de día/semana que ya existía, pero puedes interactuar usando la vista principal Dashboard.
+  </div>`;
+};
+
+/* HABITS VIEW */
+const renderHabitsView=()=>{
+  document.getElementById('content').style.padding='24px';
+  document.getElementById('content').style.overflow='auto';
+  document.getElementById('content').innerHTML=`
+  <div style="font-size:1.3rem;font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:16px"><span>🔥</span> Hábitos</div>
+  <div style="padding:24px;border:1px solid var(--border);border-radius:var(--card-r);background:var(--bg-card);backdrop-filter:blur(4px);text-align:center;color:var(--text2)">
+   Tus hábitos se rastrean aquí. Agrega nuevos de forma modular.
+  </div>`;
+};
+
+/* SETTINGS VIEW */
+const renderSettingsView=()=>{
+    document.getElementById('content').style.padding='24px';
+    document.getElementById('content').style.overflow='auto';
+    document.getElementById('content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
+      <div style="font-size:1.3rem;font-weight:800;display:flex;align-items:center;gap:8px"><span>⚙️</span> Ajustes</div>
+    </div>
+    <div class="settings-wrap">
+       <div class="settings-section">
+         <h3>🎨 Color de acento</h3>
+         <div class="accent-swatches" id="accentSwatches">
+            ${ACCENT_PRESETS.map(p=>`<div class="accent-swatch${state.settings.accentColor===p.h?' active':''}" data-hex="${p.h}" title="${p.name}" style="background:${p.h}"></div>`).join('')}
+         </div>
+       </div>
+    </div>`;
+    document.getElementById('accentSwatches').addEventListener('click',e=>{
+        const sw=e.target.closest('.accent-swatch');
+        if(!sw) return;
+        document.querySelectorAll('.accent-swatch').forEach(s=>s.classList.remove('active'));
+        sw.classList.add('active');
+        applyAccent(sw.dataset.hex);
+        save();toast('🎨 Color actualizado');
+    });
+};
+
+/* REMINDERS VIEW - NEW! */
+const renderRemindersView = () => {
+    document.getElementById('content').style.padding='24px';
+    document.getElementById('content').style.overflow='auto';
+    document.getElementById('content').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div style="font-size:1.3rem;font-weight:800;display:flex;align-items:center;gap:10px"><span>⏰</span> Recordatorios</div>
+      <button class="btn btn-primary" id="newReminderBtn">+ Nuevo</button>
+    </div>
+    <div id="remindersList"></div>`;
+  
+    document.getElementById('newReminderBtn').addEventListener('click',()=>openModal('reminderModal'));
+  
+    const list=document.getElementById('remindersList');
+    const sorted = [...state.reminders].sort((a,b) => new Date(a.datetime) - new Date(b.datetime));
+    
+    if(!sorted.length) {
+      list.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3)">Sin recordatorios. Crea uno para organizarte.</div>';
+      return;
+    }
+    
+    list.innerHTML='';
+    sorted.forEach(r => {
+      const isPast = new Date(r.datetime) < new Date();
+      const d = new Date(r.datetime);
+      const dateStr = d.toLocaleDateString('es-MX', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+      const el = document.createElement('div');
+      el.className = 'reminder-card' + (isPast ? ' reminder-past' : '');
+      el.innerHTML = `
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:.95rem;margin-bottom:4px;color:${isPast?'var(--text3)':'var(--text)'}">${r.title}</div>
+          ${r.desc ? `<div style="font-size:.8rem;color:var(--text2);margin-bottom:8px">${r.desc}</div>`:''}
+          <div style="display:flex;gap:5px;align-items:center">
+            <span style="font-size:.7rem;padding:2px 6px;background:var(--bg2);border-radius:4px;color:var(--text3)">${dateStr}</span>
+            ${(r.tags||[]).map(t=>`<span style="font-size:.65rem;padding:2px 8px;border-radius:20px;background:var(--bg2);color:var(--text2);border:1px solid var(--border)">#${t}</span>`).join('')}
+          </div>
+        </div>
+        <div>
+          <button data-rid="${r.id}" class="del-rem-btn" style="background:none;border:none;color:var(--red);cursor:pointer;padding:8px;font-size:1rem">🗑</button>
+        </div>
+      `;
+      el.querySelector('.del-rem-btn').addEventListener('click', () => {
+        if(!confirm('¿Eliminar recordatorio?')) return;
+        state.reminders = state.reminders.filter(x => x.id !== r.id);
+        save();
+        renderRemindersView();
+      });
+      list.appendChild(el);
+    });
+};
+  
+/* DIARY VIEW - NEW! */
+const renderDiaryView = () => {
+    document.getElementById('content').style.padding='24px';
+    document.getElementById('content').style.overflow='auto';
+    
+    document.getElementById('content').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div style="font-size:1.3rem;font-weight:800;display:flex;align-items:center;gap:10px"><span>📖</span> Mi Diario Personal</div>
+      <button class="btn btn-ghost" id="togglePrivacyBtn" style="color:var(--text2)">
+        ${state.settings.diaryLocked ? '🔒 Desbloquear Vista' : '🔓 Bloquear Vista'}
+      </button>
+    </div>
+    
+    <div class="diary-card" style="margin-bottom:24px">
+      <h3 style="margin-bottom:12px;font-size:.9rem;color:var(--text2)">¿Cómo te sientes hoy?</h3>
+      <div class="mood-picker" id="diaryMoodPicker">
+        ${['😊','😌','😐','😔','😢','😡','🤩'].map(m => `<div class="mood-btn" data-mood="${m}">${m}</div>`).join('')}
+      </div>
+      <textarea id="diaryBody" rows="3" placeholder="Escribe tus pensamientos libremente..." style="width:100%;background:var(--bg-inner);border:1px solid var(--border-inner);border-radius:16px;padding:12px 14px;color:var(--text);font-size:.9rem;outline:none;resize:vertical;font-family:inherit;margin-bottom:12px"></textarea>
+      <div style="text-align:right">
+        <button class="btn btn-primary" id="saveDiaryBtn">Guardar en mi Diario</button>
+      </div>
+    </div>
+    
+    <div id="diaryList"></div>`;
+  
+    let selectedMood = '😊';
+    document.querySelector('.mood-btn[data-mood="😊"]').classList.add('active');
+  
+    document.getElementById('diaryMoodPicker').addEventListener('click', e => {
+      const btn = e.target.closest('.mood-btn');
+      if(!btn) return;
+      selectedMood = btn.dataset.mood;
+      document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  
+    const list = document.getElementById('diaryList');
+    const renderList = () => {
+      list.innerHTML = '';
+      const sorted = [...state.diary].sort((a,b) => b.id - a.id);
+      if(!sorted.length) {
+        list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Aún no has escrito. ¡Empieza hoy!</div>';
+        return;
+      }
+      sorted.forEach(entry => {
+        const el = document.createElement('div');
+        el.className = 'diary-card';
+        const d = new Date(entry.id);
+        const dateStr = d.toLocaleDateString('es-MX', {weekday:'long', day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'});
+        const textClass = state.settings.diaryLocked ? 'blur-content' : '';
+        
+        el.innerHTML = `
+          <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:.75rem;color:var(--text3);text-transform:capitalize">${dateStr}</div>
+            <button data-id="${entry.id}" class="del-diary-btn" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;opacity:0.5;transition:0.2s">🗑</button>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="font-size:2rem">${entry.mood}</div>
+            <div class="${textClass}" style="flex:1;font-size:.9rem;color:var(--text);line-height:1.6;white-space:pre-wrap">${entry.content}</div>
+          </div>
+        `;
+        const delBtn = el.querySelector('.del-diary-btn');
+        delBtn.addEventListener('mouseenter', () => delBtn.style.opacity = '1');
+        delBtn.addEventListener('mouseleave', () => delBtn.style.opacity = '0.5');
+        delBtn.addEventListener('click', () => {
+           if(confirm('¿Eliminar esta entrada de tu diario?')) {
+             state.diary = state.diary.filter(x => x.id !== entry.id);
+             save(); renderList();
+           }
+        });
+        list.appendChild(el);
+      });
+    };
+    renderList();
+  
+    document.getElementById('togglePrivacyBtn').addEventListener('click', () => {
+      state.settings.diaryLocked = !state.settings.diaryLocked;
+      save();
+      renderDiaryView();
+    });
+  
+    document.getElementById('saveDiaryBtn').addEventListener('click', () => {
+      const text = document.getElementById('diaryBody').value.trim();
+      if(!text) {toast('⚠️ Escribe algo primero'); return;}
+      state.diary.push({ id: Date.now(), mood: selectedMood, content: text });
+      save();
+      document.getElementById('diaryBody').value = '';
+      renderList();
+      toast('✅ Entrada guardada');
+    });
+};
+
+// ══════════════════════════════════════════════
+// MODAL EVENTS
+// ══════════════════════════════════════════════
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});
+});
+
+document.getElementById('noteCancel')?.addEventListener('click',()=>closeModal('noteModal'));
+document.getElementById('noteSave')?.addEventListener('click',()=>{
+  const t=document.getElementById('noteTitle')?.value.trim();
+  if(!t){toast('⚠️ Agrega un título');return;}
+  state.notes.unshift({id:Date.now(),title:t,body:document.getElementById('noteBody')?.value.trim(),
+    tags:document.getElementById('noteTags')?.value.split(',').map(s=>s.trim()).filter(Boolean),
+    color:document.getElementById('noteColor')?.value,pinned:false,createdAt:new Date().toISOString()});
+  save();renderNotes();closeModal('noteModal');
+  ['noteTitle','noteBody','noteTags'].forEach(id=>document.getElementById(id).value='');
+  toast('✅ Nota guardada');
+});
+
+document.getElementById('evCancel')?.addEventListener('click',()=>closeModal('eventModal'));
+document.getElementById('evSave')?.addEventListener('click',()=>{
+  const t=document.getElementById('evTitle')?.value.trim();
+  if(!t){toast('⚠️ Agrega un título');return;}
+  state.events.push({id:Date.now(),title:t,date:document.getElementById('evDate')?.value,
+    start:document.getElementById('evStart')?.value,end:document.getElementById('evEnd')?.value,
+    color:document.getElementById('evColor')?.value});
+  save();renderCalendar();closeModal('eventModal');
+  document.getElementById('evTitle').value='';
+  toast('✅ Evento guardado');
+});
+
+document.getElementById('projCancel')?.addEventListener('click',()=>closeModal('projModal'));
+document.getElementById('projSave')?.addEventListener('click',()=>{
+  const n=document.getElementById('projName')?.value.trim();
+  if(!n){toast('⚠️ Agrega un nombre');return;}
+  state.projects.unshift({id:Date.now(),name:n,desc:document.getElementById('projDesc')?.value.trim(),
+    status:document.getElementById('projStatus')?.value,tasks:[],createdAt:new Date().toISOString()});
+  save();renderProjects();closeModal('projModal');
+  document.getElementById('projName').value='';
+  document.getElementById('projDesc').value='';
+  toast('✅ Proyecto creado');
+});
+
+// Reminder events
+document.getElementById('remCancel')?.addEventListener('click',()=>closeModal('reminderModal'));
+document.getElementById('remSave')?.addEventListener('click',()=>{
+  const t=document.getElementById('remTitle').value.trim();
+  const dt=document.getElementById('remDateTime').value;
+  if(!t || !dt){toast('⚠️ Título y fecha obligatorios');return;}
+  const tags=document.getElementById('remTags').value.split(',').map(s=>s.trim()).filter(Boolean);
+  state.reminders.push({
+    id:Date.now(),
+    title:t,
+    desc:document.getElementById('remDesc').value.trim(),
+    datetime:dt,
+    tags:tags,
+    notified:false
+  });
+  save(); closeModal('reminderModal'); 
+  const currentView = document.querySelector('.nav-item.active')?.dataset.view;
+  if (currentView === 'reminders') renderRemindersView();
+  
+  ['remTitle','remDesc','remTags','remDateTime'].forEach(id=>document.getElementById(id).value='');
+  toast('✅ Recordatorio guardado');
+});
+
+document.getElementById('fab')?.addEventListener('click',()=>openModal('noteModal'));
+
+// ══════════════════════════════════════════════
+// ROUTING / INITIALIZATION
+// ══════════════════════════════════════════════
+document.querySelectorAll('.nav-item,[data-view]').forEach(el=>{
+  el.addEventListener('click',()=>{
+    const v=el.dataset.view;
+    if(!v) return;
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.querySelector(`.nav-item[data-view="${v}"]`)?.classList.add('active');
+    
+    if(v==='dashboard')  renderDashboard();
+    else if(v==='projects') renderProjectsView();
+    else if(v==='notes') renderNotesView();
+    else if(v==='calendar') renderCalendarView();
+    else if(v==='habits') renderHabitsView();
+    else if(v==='ai') renderAIView();
+    else if(v==='settings') renderSettingsView();
+    else if(v==='reminders') renderRemindersView();
+    else if(v==='diary') renderDiaryView();
+  });
+});
+
+document.getElementById('menuBtn')?.addEventListener('click',()=>{
+  document.getElementById('sidebar')?.classList.toggle('open');
+});
+
+document.getElementById('themeToggle')?.addEventListener('click', () => {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(state.theme);
+});
+
+const autoConnectFirebase=async()=>{
+  const {firebaseApiKey,firebaseProjectId}=state.settings;
+  if(firebaseApiKey&&firebaseProjectId){
+    await fb.init(firebaseApiKey,firebaseProjectId);
+  }
+};
+
+window.addEventListener('DOMContentLoaded', () => {
+    applyTheme(state.theme);
+    applyAccent(state.settings.accentColor || '#7c6af7');
+    applyUsername(state.settings.username);
+    initGreeting();
+    renderDashboard();
+    autoConnectFirebase();
+    initNotifications();
+});
